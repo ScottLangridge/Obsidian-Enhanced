@@ -14,8 +14,9 @@ venv/
 # Claude
 .claude/
 
-# Obsidian Vault
-vault/
+# Obsidian Vault (ignore contents except .gitkeep)
+vault/*
+!vault/.gitkeep
 
 # OS
 .DS_Store

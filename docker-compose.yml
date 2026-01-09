@@ -2,8 +2,11 @@ version: '3.8'
 
 services:
   app:
+    container_name: obsidian-enhanced
     build: .
     volumes:
       - ./app:/app
+      - ./vault:/vault
     ports:
       - "8000:8000"
+
