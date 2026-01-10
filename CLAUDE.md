@@ -4,96 +4,97 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Obsidian Enhanced is a Python application for enhancing Obsidian vault functionality. The project uses Docker for development and has direct access to an Obsidian vault mounted at `./vault/`.
+Obsidian Enhanced is a FastAPI-based service that enhances Obsidian vault functionality through a web interface. The primary feature is "Quick Capture" - a text processing system that receives text input via API, applies pattern-based classification rules, and routes messages to appropriate handlers (e.g., transforming "pl3" to "Parking Level: 3" in daily notes).
 
-## Common Commands
+The application runs in Docker and expects an Obsidian vault to be synced to `./vault/` (Syncthing recommended).
 
-### Docker Operations
+## Development Commands
+
+### Running the Application
 ```bash
-# Build and run the application
+# Build and start the service (runs on port 8000)
 docker compose up --build
 
-# Run the application (after initial build)
-docker compose up
+# Run in background
+docker compose up -d
 
-# Rebuild the Docker image
-docker compose build
-
-# Stop the application
+# Stop the service
 docker compose down
-
-# Run a Python script in the container
-docker compose run --rm app python <script_name>.py
-
-# Access container shell
-docker compose run --rm app bash
 ```
 
-### Development
-- Python code goes in `./app/` directory
-- Changes to Python files are reflected immediately via volume mount (no rebuild needed)
-- Changes to `requirements.txt` require rebuilding the Docker image
+### Testing
+```bash
+# Run all tests
+./test.sh
+
+# Run with verbose output
+./test.sh -v
+
+# Run specific test file
+./test.sh tests/test_message_queue.py
+
+# Run specific test function
+./test.sh tests/test_message_queue.py::test_messages_are_queued_and_processed_on_next_arrival
+```
+
+### Development Workflow
+The Docker container uses `--reload` flag with uvicorn, so code changes in `./app/` are automatically reloaded without restarting the container.
 
 ## Architecture
 
-### Project Structure
+### Core Components
+
+**server.py** - FastAPI application entry point
+- Defines API endpoints (`/api/capture` for text capture)
+- Serves static web interface at root (`/`)
+- Uses BackgroundTasks to process captures asynchronously
+- Initializes VaultHandler and QuickCapture on startup
+
+**quick_capture.py** - Pattern-based text classification engine
+- Processes incoming text using ordered rule patterns (regex-based)
+- First matching rule wins
+- Each rule consists of a (pattern, handler) tuple
+- Falls back to simple append if no pattern matches
+- Example rule: `r'\s*pl(\d)\s*'` → `handle_parking_level()`
+
+**vault_handler.py** - Obsidian vault operations
+- Abstraction layer for all vault file operations
+- Currently contains placeholder implementation for `append_to_daily_note()`
+- Will handle daily note creation, frontmatter, section management
+
+**main.py** - Alternative entry point (imports from server.py)
+
+### Request Flow
+1. User submits text via web interface (`static/index.html`)
+2. POST request to `/api/capture` with JSON payload `{"text": "..."}`
+3. Server adds `quick_capture.process()` to BackgroundTasks queue
+4. QuickCapture checks rules in order, calls first matching handler
+5. Handler uses VaultHandler to modify vault files
+
+### Adding New Capture Rules
+
+Rules are defined in `quick_capture.py` in the `__init__` method. Add new (pattern, handler) tuples to the `self.rules` list. Rules are checked sequentially - order matters.
+
+Example:
+```python
+self.rules = [
+    (r'\s*pl(\d)\s*', self.handle_parking_level),
+    (r'^TODO:\s*(.+)$', self.handle_todo),  # Add new rules here
+]
 ```
-/home/scott/docker/obsidian-enhanced/
-├── Dockerfile              # Python 3.11 image with dependencies
-├── docker-compose.yml      # Development orchestration
-├── requirements.txt        # Python dependencies (currently empty)
-├── app/                    # Python application code (volume mounted)
-│   └── main.py            # Entry point
-└── vault/                  # Obsidian vault (volume mounted, read-only access)
-    ├── Daily Notes/       # Daily note entries
-    ├── Projects/          # Project notes
-    ├── Repositories/      # Repository documentation
-    ├── Themes/            # Theme notes
-    └── ...
+
+Then implement the corresponding handler method:
+```python
+def handle_todo(self, text: str, match: re.Match) -> None:
+    task = match.group(1)
+    # Process and use vault_handler to write
 ```
 
-### Docker Configuration Philosophy
-- **Dockerfile**: Handles environment setup (Python image, dependencies, working directory, default command)
-- **docker-compose.yml**: Handles development workflow (build, volume mount, port mapping)
-- **No redundancy**: Settings are defined once - either in Dockerfile or docker-compose, not both
-- **Volume mounts**:
-  - `./app:/app` - Application code (live updates during development)
-  - `./vault:/vault` - Obsidian vault (synced from external source)
+## Testing
 
-### Key Implementation Details
-- Application code lives in `./app/` subdirectory (separate from Docker config files)
-- Dockerfile only copies `requirements.txt` for dependency installation
-- Application code is NOT copied into the image - it's mounted via volume for development
-- Container inherits WORKDIR (`/app`) and CMD from Dockerfile
-- When the main Python process exits, the container stops (expected behavior for script execution)
-- Port 8000 is mapped for future web server functionality
+Tests are located in `app/tests/` and use pytest with FastAPI's TestClient. The test suite includes:
+- Message queue behavior verification
+- Mock-based testing for VaultHandler interactions
+- Stdout capture for debugging background task execution
 
-## Vault Integration
-
-### Vault Syncing
-The `./vault/` directory contains a synced Obsidian vault (synced externally via Syncthing or similar). This vault contains:
-- Daily Notes - Timestamped daily entries
-- Projects - Project-specific notes and documentation
-- Repositories - Repository-related notes
-- Themes - Thematic organization
-- Other user-created folders
-
-### Claude Workspace
-`/mnt/c/Users/scott/Documents/Obsidian Vaults/Scott's Vault/Projects/Obsidian Enhanced/Claude Workspace` is a dedicated section of the Obsidian vault for Claude to use for:
-- Scratch work and temporary notes
-- Planning and design documents
-- Memory and context persistence across sessions
-
-### Obsidian File Formatting Guidelines
-When creating markdown files in the Obsidian workspace:
-- **Do NOT use a level 1 heading (#) for the title**
-- Obsidian implicitly treats the filename as the title
-- Start the document content with level 2 headings (##) or lower
-- Example: A file named "Project Overview.md" should start with `## Section Name`, not `# Project Overview`
-
-## Development Notes
-
-- Currently in early development stage with minimal functionality
-- No test suite present yet
-- No linting or formatting tools configured yet
-- Python dependencies should be added to `requirements.txt` and require image rebuild
+The `test.sh` script runs pytest inside the Docker container to ensure consistent test environment.
