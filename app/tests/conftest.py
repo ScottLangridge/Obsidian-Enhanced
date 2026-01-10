@@ -3,6 +3,7 @@
 import pytest
 from unittest.mock import MagicMock
 from fastapi.testclient import TestClient
+from pathlib import Path
 
 
 @pytest.fixture
@@ -57,3 +58,20 @@ def test_client(monkeypatch):
     # Create and return test client
     from fastapi.testclient import TestClient
     return TestClient(server.app)
+
+
+@pytest.fixture(scope="session", autouse=True)
+def setup_logging_for_tests():
+    """Set up logging for all tests (runs once per test session)"""
+    from logging_config import setup_logging
+    setup_logging()
+
+
+@pytest.fixture
+def log_file_path():
+    """Path to the application log file
+
+    Returns:
+        Path: Path to /app/logs/app.log
+    """
+    return Path("/app/logs/app.log")
