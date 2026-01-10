@@ -13,7 +13,7 @@ class TestParkingLevelPattern:
         mock_vault_handler.append_to_daily_note.assert_called_once_with("Parking Level: 3")
 
     def test_parking_level_multiple_digits(self, quick_capture_instance, mock_vault_handler):
-        """Parking Level (Multiple Digits): Handle multiple digits like 'pl999'
+        r"""Parking Level (Multiple Digits): Handle multiple digits like 'pl999'
 
         Note: Current regex only captures single digit (\d), so this should go to fallback
         """

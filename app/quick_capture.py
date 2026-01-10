@@ -17,7 +17,7 @@ class QuickCapture:
         # Define classification rules as (pattern, handler) tuples
         # Rules are checked in order - first match wins
         self.rules = [
-            (r'\s*pl(\d)\s*', self.handle_parking_level),
+            (r'^\s*pl(\d)\s*$', self.handle_parking_level),
             # Add more rules here as needed:
             # (r'^TODO:\s*(.+)$', self.handle_todo),
             # (r'^\[\[(.+)\]\]', self.handle_wiki_link),
