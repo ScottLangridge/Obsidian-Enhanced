@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 
+import logging
 import re
 from vault_handler import VaultHandler
+
+# Get logger for this module
+logger = logging.getLogger("QUICK_CAPTURE")
 
 
 class QuickCapture:
@@ -25,20 +29,20 @@ class QuickCapture:
         Args:
             text: The captured text to process
         """
-        print(f"[QUICK_CAPTURE] Processing: {text}")
+        logger.info(f"Processing: {text}")
 
         # Check rules in order - first match wins
         for pattern, handler in self.rules:
             match = re.match(pattern, text, re.IGNORECASE)
             if match:
                 handler_name = handler.__name__
-                print(f"[QUICK_CAPTURE] Matched rule: {pattern}")
-                print(f"[QUICK_CAPTURE] Calling handler: {handler_name}")
+                logger.info(f"Matched rule: {pattern}")
+                logger.debug(f"Calling handler: {handler_name}")
                 handler(text, match)
                 return
 
         # No match - use fallback
-        print(f"[QUICK_CAPTURE] No rule matched - using fallback")
+        logger.warning(f"No rule matched - using fallback")
         self.handle_fallback(text)
 
     def handle_parking_level(self, text: str, match: re.Match) -> None:

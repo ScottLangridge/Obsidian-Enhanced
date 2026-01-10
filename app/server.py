@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
 
+import logging
 from fastapi import FastAPI, BackgroundTasks
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from vault_handler import VaultHandler
 from quick_capture import QuickCapture
+
+# Get logger for this module
+logger = logging.getLogger("SERVER")
 
 app = FastAPI()
 
@@ -31,6 +35,6 @@ def root():
 @app.post("/api/capture")
 def capture_text(request: CaptureRequest, background_tasks: BackgroundTasks):
     """Receive captured text and process in background"""
-    print(f"[SERVER] Received: {request.text}")
+    logger.info(f"Received: {request.text}")
     background_tasks.add_task(quick_capture.process, request.text)
     return {"status": "success", "message": "Text captured successfully"}

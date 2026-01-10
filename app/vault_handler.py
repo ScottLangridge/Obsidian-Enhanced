@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 
+import logging
+
+# Get logger for this module
+logger = logging.getLogger("VAULT_HANDLER")
+
 
 class VaultHandler:
     """Handles all vault operations"""
@@ -13,4 +18,4 @@ class VaultHandler:
         Args:
             text: The text to append
         """
-        print(f"[VAULT_HANDLER] Would append to daily note: {text}")
+        logger.info(f"Appending to daily note: {text}")

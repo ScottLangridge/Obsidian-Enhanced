@@ -18,5 +18,9 @@ venv/
 vault/*
 !vault/.gitkeep
 
+# Logs
+logs/
+*.log
+
 # OS
 .DS_Store

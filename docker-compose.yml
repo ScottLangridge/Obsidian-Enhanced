@@ -5,6 +5,10 @@ services:
     volumes:
       - ./app:/app
       - ./vault:/vault
+      - ./logs:/app/logs
+      - ./tests:/tests
     ports:
       - "8000:8000"
+    environment:
+      - LOG_LEVEL=INFO
 
