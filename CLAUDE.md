@@ -10,31 +10,30 @@ The application runs in Docker and expects an Obsidian vault to be synced to `./
 
 ## Development Commands
 
-### Running the Application
+### Makefile Commands
+A Makefile is provided for convenient access to common development tasks:
+
 ```bash
-# Build and start the service (runs on port 8000)
-docker compose up --build
+# View all available commands
+make help
 
-# Run in background
-docker compose up -d
+# Run tests
+make test          # Run tests with verbose output
+make test-cov      # Run tests with coverage report (HTML + terminal)
 
-# Stop the service
-docker compose down
-```
+# Container management
+make run           # Start services in detached mode (same as make up)
+make up            # Start services in detached mode
+make down          # Stop services
+make build         # Build Docker image
+make restart       # Restart services
 
-### Testing
-```bash
-# Run all tests
-./test.sh
+# Shell access
+make shell         # Open bash shell in new container
+make attach        # Attach to bash shell of running container
 
-# Run with verbose output
-./test.sh -v
-
-# Run specific test file
-./test.sh tests/test_message_queue.py
-
-# Run specific test function
-./test.sh tests/test_message_queue.py::test_messages_are_queued_and_processed_on_next_arrival
+# Cleanup
+make clean         # Remove containers and prune Docker system
 ```
 
 ### Development Workflow
@@ -64,37 +63,10 @@ The Docker container uses `--reload` flag with uvicorn, so code changes in `./ap
 
 **main.py** - Alternative entry point (imports from server.py)
 
-### Request Flow
-1. User submits text via web interface (`static/index.html`)
-2. POST request to `/api/capture` with JSON payload `{"text": "..."}`
-3. Server adds `quick_capture.process()` to BackgroundTasks queue
-4. QuickCapture checks rules in order, calls first matching handler
-5. Handler uses VaultHandler to modify vault files
-
-### Adding New Capture Rules
-
-Rules are defined in `quick_capture.py` in the `__init__` method. Add new (pattern, handler) tuples to the `self.rules` list. Rules are checked sequentially - order matters.
-
-Example:
-```python
-self.rules = [
-    (r'\s*pl(\d)\s*', self.handle_parking_level),
-    (r'^TODO:\s*(.+)$', self.handle_todo),  # Add new rules here
-]
-```
-
-Then implement the corresponding handler method:
-```python
-def handle_todo(self, text: str, match: re.Match) -> None:
-    task = match.group(1)
-    # Process and use vault_handler to write
-```
-
 ## Testing
 
 Tests are located in `app/tests/` and use pytest with FastAPI's TestClient. The test suite includes:
 - Message queue behavior verification
 - Mock-based testing for VaultHandler interactions
 - Stdout capture for debugging background task execution
-
-The `test.sh` script runs pytest inside the Docker container to ensure consistent test environment.
+- Tests should be written in advance of new features, following test driven development principles.
