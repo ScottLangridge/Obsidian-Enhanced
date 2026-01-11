@@ -2,6 +2,7 @@
 
 import logging
 import re
+from decimal import Decimal, ROUND_HALF_UP
 from vault_handler import VaultHandler
 
 logger = logging.getLogger(__name__)
@@ -16,6 +17,7 @@ class QuickCapture:
         # Define classification rules as (pattern, handler) tuples
         # Rules are checked in order - first match wins
         self.rules = [
+            (r'^\s*(?:w|weight)\s*(\d+(?:\.\d+)?)\s*$', self.handle_weight),
             (r'^\s*pl(\d)\s*$', self.handle_parking_level),
             (r'^\s*(task|todo)\s([\s\S]+)$', self.handle_todo_task),
             # Add more rules here as needed:
@@ -43,6 +45,20 @@ class QuickCapture:
         # No match - use fallback
         logger.info("No rule matched - using fallback")
         self.handle_fallback(text)
+
+    def handle_weight(self, text: str, match: re.Match) -> None:
+        """Handle weight captures (e.g., 'w70.3' -> '[weight::70.3]')
+
+        Args:
+            text: The original captured text
+            match: The regex match object
+        """
+        weight_value = match.group(1)
+        # Use Decimal for proper rounding (round half up) to 1 decimal place
+        weight_decimal = Decimal(weight_value)
+        rounded_weight = weight_decimal.quantize(Decimal('0.1'), rounding=ROUND_HALF_UP)
+        formatted_weight = str(rounded_weight)
+        self.vault_handler.populate_weight_tag(formatted_weight)
 
     def handle_parking_level(self, text: str, match: re.Match) -> None:
         """Handle parking level captures (e.g., 'pl3' -> 'Parking Level: 3')
