@@ -72,6 +72,87 @@ class TestFallbackHandler:
         mock_vault_handler.append_to_daily_note.assert_called_once_with(text)
 
 
+class TestTodoTaskPattern:
+    """Test todo/task pattern matching (task/todo <anything>, case-insensitive, whitespace handling)"""
+
+    def test_task_basic(self, quick_capture_instance, mock_vault_handler):
+        """Todo/Task (Basic - task): 'task buy milk' formats to '- [ ] #todo buy milk'"""
+        quick_capture_instance.process("task buy milk")
+        mock_vault_handler.append_to_daily_note.assert_called_once_with("- [ ] #todo buy milk")
+
+    def test_todo_basic(self, quick_capture_instance, mock_vault_handler):
+        """Todo/Task (Basic - todo): 'todo buy milk' formats to '- [ ] #todo buy milk'"""
+        quick_capture_instance.process("todo buy milk")
+        mock_vault_handler.append_to_daily_note.assert_called_once_with("- [ ] #todo buy milk")
+
+    def test_task_case_insensitive_uppercase(self, quick_capture_instance, mock_vault_handler):
+        """Todo/Task (Case Insensitive - TASK): 'TASK buy milk' formats correctly"""
+        quick_capture_instance.process("TASK buy milk")
+        mock_vault_handler.append_to_daily_note.assert_called_once_with("- [ ] #todo buy milk")
+
+    def test_todo_case_insensitive_uppercase(self, quick_capture_instance, mock_vault_handler):
+        """Todo/Task (Case Insensitive - TODO): 'TODO buy milk' formats correctly"""
+        quick_capture_instance.process("TODO buy milk")
+        mock_vault_handler.append_to_daily_note.assert_called_once_with("- [ ] #todo buy milk")
+
+    def test_task_case_insensitive_mixed(self, quick_capture_instance, mock_vault_handler):
+        """Todo/Task (Case Insensitive - Task): 'Task buy milk' formats correctly"""
+        quick_capture_instance.process("Task buy milk")
+        mock_vault_handler.append_to_daily_note.assert_called_once_with("- [ ] #todo buy milk")
+
+    def test_todo_case_insensitive_mixed(self, quick_capture_instance, mock_vault_handler):
+        """Todo/Task (Case Insensitive - Todo): 'Todo buy milk' formats correctly"""
+        quick_capture_instance.process("Todo buy milk")
+        mock_vault_handler.append_to_daily_note.assert_called_once_with("- [ ] #todo buy milk")
+
+    def test_task_whitespace_leading_trailing(self, quick_capture_instance, mock_vault_handler):
+        """Todo/Task (Whitespace - Leading/Trailing): ' task buy milk ' formats correctly"""
+        quick_capture_instance.process(" task buy milk ")
+        mock_vault_handler.append_to_daily_note.assert_called_once_with("- [ ] #todo buy milk")
+
+    def test_task_whitespace_with_newlines(self, quick_capture_instance, mock_vault_handler):
+        """Todo/Task (Whitespace - With Newlines): ' \\n task buy milk \\n ' formats correctly"""
+        quick_capture_instance.process(" \n task buy milk \n ")
+        mock_vault_handler.append_to_daily_note.assert_called_once_with("- [ ] #todo buy milk")
+
+    def test_task_multiple_words(self, quick_capture_instance, mock_vault_handler):
+        """Todo/Task (Multiple Words): 'task this is a long task description' preserves all words"""
+        quick_capture_instance.process("task this is a long task description")
+        mock_vault_handler.append_to_daily_note.assert_called_once_with("- [ ] #todo this is a long task description")
+
+    def test_task_special_characters(self, quick_capture_instance, mock_vault_handler):
+        """Todo/Task (Special Characters): Task text with special characters is preserved"""
+        quick_capture_instance.process("task buy @groceries #important! $$$")
+        mock_vault_handler.append_to_daily_note.assert_called_once_with("- [ ] #todo buy @groceries #important! $$$")
+
+    def test_task_unicode(self, quick_capture_instance, mock_vault_handler):
+        """Todo/Task (Unicode): Task text with unicode characters is preserved"""
+        quick_capture_instance.process("task 你好世界 café naïve 🚗")
+        mock_vault_handler.append_to_daily_note.assert_called_once_with("- [ ] #todo 你好世界 café naïve 🚗")
+
+    def test_task_with_extra_spaces_between_words(self, quick_capture_instance, mock_vault_handler):
+        """Todo/Task (Extra Spaces): 'task  buy   milk' preserves spacing in content"""
+        quick_capture_instance.process("task  buy   milk")
+        mock_vault_handler.append_to_daily_note.assert_called_once_with("- [ ] #todo  buy   milk")
+
+    def test_task_single_word_content(self, quick_capture_instance, mock_vault_handler):
+        """Todo/Task (Single Word): 'task something' formats correctly"""
+        quick_capture_instance.process("task something")
+        mock_vault_handler.append_to_daily_note.assert_called_once_with("- [ ] #todo something")
+
+    def test_task_empty_content(self, quick_capture_instance, mock_vault_handler):
+        """Todo/Task (Empty Content): 'task' without content should go to fallback"""
+        quick_capture_instance.process("task")
+        # Empty task should not match the pattern, goes to fallback
+        mock_vault_handler.append_to_daily_note.assert_called_once_with("task")
+
+    def test_task_only_whitespace_content(self, quick_capture_instance, mock_vault_handler):
+        """Todo/Task (Only Whitespace): 'task   ' with only whitespace should go to fallback"""
+        quick_capture_instance.process("task   ")
+        # Task with only whitespace should not match, goes to fallback
+        mock_vault_handler.append_to_daily_note.assert_called_once_with("task   ")
+
+
 class TestRuleMatchingLogic:
     """Test rule matching logic and ordering"""
 

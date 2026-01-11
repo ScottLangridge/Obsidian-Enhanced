@@ -17,8 +17,8 @@ class QuickCapture:
         # Rules are checked in order - first match wins
         self.rules = [
             (r'^\s*pl(\d)\s*$', self.handle_parking_level),
+            (r'^\s*(task|todo)\s([\s\S]+)$', self.handle_todo_task),
             # Add more rules here as needed:
-            # (r'^TODO:\s*(.+)$', self.handle_todo),
             # (r'^\[\[(.+)\]\]', self.handle_wiki_link),
         ]
 
@@ -53,6 +53,27 @@ class QuickCapture:
         """
         level = match.group(1)
         formatted_text = f"Parking Level: {level}"
+        self.vault_handler.append_to_daily_note(formatted_text)
+
+    def handle_todo_task(self, text: str, match: re.Match) -> None:
+        """Handle todo/task captures (e.g., 'task buy milk' -> '- [ ] #todo buy milk')
+
+        Args:
+            text: The original captured text
+            match: The regex match object
+        """
+        # Group 1 is 'task' or 'todo' keyword (not needed)
+        # Group 2 is the task content (may contain leading/trailing whitespace)
+        task_content_raw = match.group(2)
+
+        # Check if content has any non-whitespace characters
+        if not task_content_raw.strip():
+            self.handle_fallback(text)
+            return
+
+        # Strip only trailing whitespace, preserve leading/internal whitespace
+        task_content = task_content_raw.rstrip()
+        formatted_text = f"- [ ] #todo {task_content}"
         self.vault_handler.append_to_daily_note(formatted_text)
 
     def handle_fallback(self, text: str) -> None:
