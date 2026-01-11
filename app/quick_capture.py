@@ -89,7 +89,8 @@ class QuickCapture:
 
         # Strip only trailing whitespace, preserve leading/internal whitespace
         task_content = task_content_raw.rstrip()
-        formatted_text = f"- [ ] #todo {task_content}"
+        # Note: append_to_daily_note adds the "- " prefix automatically
+        formatted_text = f"[ ] #todo {task_content}"
         self.vault_handler.append_to_daily_note(formatted_text)
 
     def handle_fallback(self, text: str) -> None:
