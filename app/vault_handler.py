@@ -16,6 +16,11 @@ TEMPLATER_TOMORROW = re.compile(
 )
 TEMPLATER_DATE_NOW = re.compile(r"<%\s*tp\.date\.now\(\)\s*%>")
 
+# Quick Capture constants
+QUICK_CAPTURE_HEADING = "## Quick Capture"
+PLACEHOLDER_PATTERN = re.compile(r'^-\s*$')  # Matches "-", "- ", "-  ", "-\t", etc.
+SECTION_SEPARATOR = "---"
+
 
 class VaultHandler:
     """Handles all vault operations"""
@@ -98,14 +103,119 @@ class VaultHandler:
         logger.info(f"Created daily note: {note_path}")
         return note_path
 
-    def append_to_daily_note(self, text: str) -> None:
-        """Append text to today's daily note (creates note if needed)
+    def _find_quick_capture_section(self, lines: list[str]) -> tuple[int, int] | None:
+        """Find the Quick Capture section boundaries
 
         Args:
-            text: The text to append
-        """
-        # Ensure daily note exists
-        daily_note_path = self.create_daily_note(exist_ok=True)
+            lines: List of lines from the note file
 
-        # TODO: Implement section-aware appending (future work)
-        logger.info(f"Would append to {daily_note_path}: {text}")
+        Returns:
+            Tuple of (start_idx, end_idx) for the Quick Capture section,
+            or None if section not found.
+            start_idx points to the "## Quick Capture" line
+            end_idx points to the line after the last line of the section
+        """
+        # Find the Quick Capture heading
+        heading_idx = None
+        for i, line in enumerate(lines):
+            if line.strip() == QUICK_CAPTURE_HEADING:
+                heading_idx = i
+                break
+        else:
+            return None  # Section not found
+
+        # Find the end of the section (next --- or next ## heading)
+        end_idx = None
+        for i in range(heading_idx + 1, len(lines)):
+            line = lines[i].strip()
+            if line == SECTION_SEPARATOR or line.startswith("##"):
+                end_idx = i
+                break
+        else:
+            # No separator or next heading found, section goes to end of file
+            end_idx = len(lines)
+
+        return (heading_idx, end_idx)
+
+    def _has_placeholder(self, section_lines: list[str]) -> tuple[bool, int | None]:
+        """Check if section has placeholder line
+
+        Args:
+            section_lines: Lines in the Quick Capture section (between heading and separator)
+
+        Returns:
+            Tuple of (has_placeholder, placeholder_index)
+        """
+        for idx, line in enumerate(section_lines):
+            if PLACEHOLDER_PATTERN.match(line):
+                return (True, idx)
+        return (False, None)
+
+    def append_to_daily_note(self, text: str, target_date: date = None) -> None:
+        """Append text to daily note Quick Capture section
+
+        First capture of the day replaces the '- ' placeholder.
+        Subsequent captures are inserted at the top of the list (newest first).
+
+        Args:
+            text: The text to append (will be formatted as '- {text}')
+            target_date: Date of the note (defaults to today)
+        """
+        try:
+            # Ensure daily note exists
+            daily_note_path = self.create_daily_note(target_date=target_date, exist_ok=True)
+
+            # Read file content
+            try:
+                content = daily_note_path.read_text(encoding='utf-8')
+            except UnicodeDecodeError as e:
+                logger.error(f"Encoding error reading {daily_note_path}: {e}")
+                return
+            except PermissionError as e:
+                logger.error(f"Permission denied reading {daily_note_path}: {e}")
+                return
+
+            lines = content.split('\n')
+
+            # Find Quick Capture section
+            section_bounds = self._find_quick_capture_section(lines)
+            if section_bounds is None:
+                logger.error("Quick Capture section not found in daily note")
+                return
+
+            start_idx, end_idx = section_bounds
+
+            # Analyze section content
+            section_lines = lines[start_idx + 1:end_idx]  # Lines between heading and separator
+            has_placeholder, placeholder_idx = self._has_placeholder(section_lines)
+
+            # Create new item line
+            new_item = f"- {text}"
+
+            # Modify section based on mode
+            if has_placeholder:
+                # REPLACE mode: Replace placeholder with new text
+                section_lines[placeholder_idx] = new_item
+            else:
+                # INSERT mode: Insert at beginning of section
+                section_lines.insert(0, new_item)
+
+            # Reconstruct file
+            new_lines = (
+                lines[:start_idx+1] +  # Everything up to and including heading
+                section_lines +         # Modified Quick Capture content
+                lines[end_idx:]         # Everything after Quick Capture section
+            )
+            new_content = '\n'.join(new_lines)
+
+            # Write back to file
+            try:
+                daily_note_path.write_text(new_content, encoding='utf-8')
+                logger.info(f"Appended to Quick Capture: {text}")
+            except PermissionError as e:
+                logger.error(f"Permission denied writing {daily_note_path}: {e}")
+                return
+
+        except Exception as e:
+            logger.exception(f"Unexpected error appending to daily note: {e}")
+            raise
