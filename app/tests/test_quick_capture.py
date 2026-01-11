@@ -181,9 +181,9 @@ class TestRuleMatchingLogic:
         assert isinstance(qc.rules, list)
         assert len(qc.rules) > 0
 
-        # First rule should be parking level pattern
+        # First rule should be weight pattern
         first_pattern, first_handler = qc.rules[0]
-        assert first_handler.__name__ == 'handle_parking_level'
+        assert first_handler.__name__ == 'handle_weight'
 
     def test_rule_matching_handler_routing(self, mock_vault_handler):
         """Rule Matching (Handler Routing): Matched rule routes to correct handler"""

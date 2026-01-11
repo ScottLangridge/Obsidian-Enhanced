@@ -21,6 +21,10 @@ QUICK_CAPTURE_HEADING = "## Quick Capture"
 PLACEHOLDER_PATTERN = re.compile(r'^-\s*$')  # Matches "-", "- ", "-  ", "-\t", etc.
 SECTION_SEPARATOR = "---"
 
+# Trackers constants
+TRACKERS_HEADING = "## Trackers"
+WEIGHT_TAG_PATTERN = re.compile(r'^\s*-\s*\[weight::(?:\d+(?:\.\d+)?)?\]\s*$')  # Matches "- [weight::]" or "- [weight::70.3]"
+
 
 class VaultHandler:
     """Handles all vault operations"""
@@ -103,22 +107,23 @@ class VaultHandler:
         logger.info(f"Created daily note: {note_path}")
         return note_path
 
-    def _find_quick_capture_section(self, lines: list[str]) -> tuple[int, int] | None:
-        """Find the Quick Capture section boundaries
+    def _find_section(self, lines: list[str], heading: str) -> tuple[int, int] | None:
+        """Find a section by heading
 
         Args:
             lines: List of lines from the note file
+            heading: The heading to search for (e.g., "## Quick Capture")
 
         Returns:
-            Tuple of (start_idx, end_idx) for the Quick Capture section,
+            Tuple of (start_idx, end_idx) for the section,
             or None if section not found.
-            start_idx points to the "## Quick Capture" line
+            start_idx points to the heading line
             end_idx points to the line after the last line of the section
         """
-        # Find the Quick Capture heading
+        # Find the heading
         heading_idx = None
         for i, line in enumerate(lines):
-            if line.strip() == QUICK_CAPTURE_HEADING:
+            if line.strip() == heading:
                 heading_idx = i
                 break
         else:
@@ -136,6 +141,20 @@ class VaultHandler:
             end_idx = len(lines)
 
         return (heading_idx, end_idx)
+
+    def _find_quick_capture_section(self, lines: list[str]) -> tuple[int, int] | None:
+        """Find the Quick Capture section boundaries
+
+        Args:
+            lines: List of lines from the note file
+
+        Returns:
+            Tuple of (start_idx, end_idx) for the Quick Capture section,
+            or None if section not found.
+            start_idx points to the "## Quick Capture" line
+            end_idx points to the line after the last line of the section
+        """
+        return self._find_section(lines, QUICK_CAPTURE_HEADING)
 
     def _has_placeholder(self, section_lines: list[str]) -> tuple[bool, int | None]:
         """Check if section has placeholder line
@@ -218,4 +237,70 @@ class VaultHandler:
 
         except Exception as e:
             logger.exception(f"Unexpected error appending to daily note: {e}")
+            raise
+
+    def populate_weight_tag(self, weight_value: str, target_date: date = None) -> None:
+        """Populate the [weight::] tag in the Trackers section
+
+        Args:
+            weight_value: The weight value formatted to 1 decimal place (e.g., "70.3")
+            target_date: Date of the note (defaults to today)
+        """
+        try:
+            # Ensure daily note exists
+            daily_note_path = self.create_daily_note(target_date=target_date, exist_ok=True)
+
+            # Read file content
+            try:
+                content = daily_note_path.read_text(encoding='utf-8')
+            except UnicodeDecodeError as e:
+                logger.error(f"Encoding error reading {daily_note_path}: {e}")
+                return
+            except PermissionError as e:
+                logger.error(f"Permission denied reading {daily_note_path}: {e}")
+                return
+
+            lines = content.split('\n')
+
+            # Find Trackers section
+            section_bounds = self._find_section(lines, TRACKERS_HEADING)
+            if section_bounds is None:
+                logger.error("Trackers section not found in daily note")
+                return
+
+            start_idx, end_idx = section_bounds
+
+            # Find and replace the weight tag line
+            section_lines = lines[start_idx + 1:end_idx]
+            weight_tag_found = False
+
+            for idx, line in enumerate(section_lines):
+                if WEIGHT_TAG_PATTERN.match(line):
+                    # Replace the empty tag with populated value
+                    section_lines[idx] = f"- [weight::{weight_value}]"
+                    weight_tag_found = True
+                    break
+
+            if not weight_tag_found:
+                logger.error("Weight tag [weight::] not found in Trackers section")
+                return
+
+            # Reconstruct file
+            new_lines = (
+                lines[:start_idx+1] +  # Everything up to and including heading
+                section_lines +         # Modified Trackers content
+                lines[end_idx:]         # Everything after Trackers section
+            )
+            new_content = '\n'.join(new_lines)
+
+            # Write back to file
+            try:
+                daily_note_path.write_text(new_content, encoding='utf-8')
+                logger.info(f"Populated weight tag with: {weight_value}")
+            except PermissionError as e:
+                logger.error(f"Permission denied writing {daily_note_path}: {e}")
+                return
+
+        except Exception as e:
+            logger.exception(f"Unexpected error populating weight tag: {e}")
             raise

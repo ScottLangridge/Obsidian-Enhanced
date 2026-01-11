@@ -83,6 +83,24 @@ tags:
 ---
 ## Quick Capture
 -
+---
+## Trackers
+- [weight::]
+```tracker
+searchType: text
+searchTarget: \\[weight::(?<value>\\d+(\\.\\d+)?)\\]
+folder: Daily Notes
+
+startDate: 2025-10-20
+
+line:
+    title: Weight Log
+    yAxisLabel: Weight
+    yAxisUnit: kg
+    lineColor: yellow
+    showPoint: false
+    fillGap: true
+```
 
 ---
 - [ ]  #todo/handle_inbox 🛫 <%tp.date.now()%>

@@ -376,12 +376,13 @@ class TestAppendToDailyNote:
         # Manually create empty section (no placeholder)
         content = note_path.read_text(encoding='utf-8')
         # Replace placeholder with empty section (handle both "-\n" and "- \n")
-        content = content.replace("## Quick Capture\n-\n\n---", "## Quick Capture\n---")
-        content = content.replace("## Quick Capture\n- \n\n---", "## Quick Capture\n---")
+        content = content.replace("## Quick Capture\n-\n---", "## Quick Capture\n---")
+        content = content.replace("## Quick Capture\n- \n---", "## Quick Capture\n---")
         note_path.write_text(content, encoding='utf-8')
 
         # Verify section is empty
-        assert "## Quick Capture\n---" in note_path.read_text(encoding='utf-8')
+        current_content = note_path.read_text(encoding='utf-8')
+        assert "## Quick Capture\n---" in current_content
 
         # Append first item
         handler.append_to_daily_note("First item", target_date=test_date)
