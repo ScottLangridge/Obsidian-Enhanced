@@ -229,6 +229,298 @@ class TestDailyNoteCreation:
         assert "🛫" in content
 
 
+class TestAppendToDailyNote:
+    """Tests for append_to_daily_note functionality (TDD - tests written first)"""
+
+    # Core Functionality Tests
+
+    def test_append_first_capture_replaces_placeholder(self, test_vault):
+        """First capture: Replace '- ' placeholder with '- <text>'"""
+        handler = VaultHandler(str(test_vault))
+        test_date = date(2025, 1, 15)
+
+        # Create daily note from template (with '- ' placeholder)
+        note_path = handler.create_daily_note(target_date=test_date)
+
+        # Verify placeholder exists (could be "-\n" or "- \n" depending on template)
+        content_before = note_path.read_text(encoding='utf-8')
+        assert "## Quick Capture" in content_before
+        assert ("-\n" in content_before or "- \n" in content_before)
+
+        # Append first capture
+        handler.append_to_daily_note("First capture", target_date=test_date)
+
+        # Verify placeholder replaced with actual text
+        content_after = note_path.read_text(encoding='utf-8')
+        assert "- First capture" in content_after
+
+        # Verify standalone placeholder no longer exists in Quick Capture section
+        # Extract Quick Capture section
+        qc_start = content_after.find("## Quick Capture")
+        qc_end = content_after.find("---", qc_start)
+        qc_section = content_after[qc_start:qc_end]
+
+        # Should not have standalone '- ' in Quick Capture section
+        assert not (qc_section.count("- \n") > 0 or qc_section.endswith("- "))
+
+        # Verify structure intact
+        assert "## Quick Capture" in content_after
+        assert "---" in content_after
+
+    def test_append_second_capture_inserts_at_top(self, test_vault):
+        """Second capture: Insert new item at top of list (newest first)"""
+        handler = VaultHandler(str(test_vault))
+        test_date = date(2025, 1, 15)
+
+        # Create daily note and add first capture
+        note_path = handler.create_daily_note(target_date=test_date)
+        handler.append_to_daily_note("First capture", target_date=test_date)
+
+        # Add second capture
+        handler.append_to_daily_note("Second capture", target_date=test_date)
+
+        # Verify order: newest first
+        content = note_path.read_text(encoding='utf-8')
+
+        # Extract Quick Capture section
+        qc_start = content.find("## Quick Capture")
+        qc_end = content.find("---", qc_start)
+        qc_section = content[qc_start:qc_end]
+
+        # Verify both items present
+        assert "- Second capture" in qc_section
+        assert "- First capture" in qc_section
+
+        # Verify order (Second should appear before First)
+        second_pos = qc_section.find("- Second capture")
+        first_pos = qc_section.find("- First capture")
+        assert second_pos < first_pos, "Second capture should appear before First capture (newest first)"
+
+    def test_append_multiple_captures_newest_first(self, test_vault):
+        """Multiple captures: Each new capture appears at the top"""
+        handler = VaultHandler(str(test_vault))
+        test_date = date(2025, 1, 15)
+
+        # Create note and add multiple captures
+        note_path = handler.create_daily_note(target_date=test_date)
+        handler.append_to_daily_note("First", target_date=test_date)
+        handler.append_to_daily_note("Second", target_date=test_date)
+        handler.append_to_daily_note("Third", target_date=test_date)
+        handler.append_to_daily_note("Fourth", target_date=test_date)
+        handler.append_to_daily_note("Fifth", target_date=test_date)
+
+        # Verify order
+        content = note_path.read_text(encoding='utf-8')
+        qc_start = content.find("## Quick Capture")
+        qc_end = content.find("---", qc_start)
+        qc_section = content[qc_start:qc_end]
+
+        # All items present
+        assert "- First" in qc_section
+        assert "- Second" in qc_section
+        assert "- Third" in qc_section
+        assert "- Fourth" in qc_section
+        assert "- Fifth" in qc_section
+
+        # Verify order: Fifth, Fourth, Third, Second, First
+        fifth_pos = qc_section.find("- Fifth")
+        fourth_pos = qc_section.find("- Fourth")
+        third_pos = qc_section.find("- Third")
+        second_pos = qc_section.find("- Second")
+        first_pos = qc_section.find("- First")
+
+        assert fifth_pos < fourth_pos < third_pos < second_pos < first_pos
+
+    # Error Handling Tests
+
+    def test_append_missing_section_logs_error_and_skips(self, test_vault, caplog):
+        """Missing section: Log error and skip modification"""
+        handler = VaultHandler(str(test_vault))
+        test_date = date(2025, 1, 15)
+
+        # Create daily note
+        note_path = handler.create_daily_note(target_date=test_date)
+
+        # Remove Quick Capture section manually
+        content = note_path.read_text(encoding='utf-8')
+        # Remove everything from "## Quick Capture" to the next section
+        qc_start = content.find("## Quick Capture")
+        qc_end = content.find("## Trackers")
+        modified_content = content[:qc_start] + content[qc_end:]
+        note_path.write_text(modified_content, encoding='utf-8')
+
+        # Store original content
+        original_content = note_path.read_text(encoding='utf-8')
+
+        # Attempt to append
+        handler.append_to_daily_note("Test text", target_date=test_date)
+
+        # Verify error logged
+        assert "Quick Capture section not found" in caplog.text
+
+        # Verify file unchanged
+        current_content = note_path.read_text(encoding='utf-8')
+        assert current_content == original_content
+
+        # Verify no exception raised (graceful failure)
+        # If we got here, no exception was raised
+
+    def test_append_empty_section_inserts_first_item(self, test_vault):
+        """Empty section: Insert first item when section exists but has no '- ' placeholder"""
+        handler = VaultHandler(str(test_vault))
+        test_date = date(2025, 1, 15)
+
+        # Create daily note
+        note_path = handler.create_daily_note(target_date=test_date)
+
+        # Manually create empty section (no placeholder)
+        content = note_path.read_text(encoding='utf-8')
+        # Replace placeholder with empty section (handle both "-\n" and "- \n")
+        content = content.replace("## Quick Capture\n-\n\n---", "## Quick Capture\n---")
+        content = content.replace("## Quick Capture\n- \n\n---", "## Quick Capture\n---")
+        note_path.write_text(content, encoding='utf-8')
+
+        # Verify section is empty
+        assert "## Quick Capture\n---" in note_path.read_text(encoding='utf-8')
+
+        # Append first item
+        handler.append_to_daily_note("First item", target_date=test_date)
+
+        # Verify item inserted
+        content_after = note_path.read_text(encoding='utf-8')
+        qc_start = content_after.find("## Quick Capture")
+        qc_end = content_after.find("---", qc_start)
+        qc_section = content_after[qc_start:qc_end]
+
+        assert "- First item" in qc_section
+
+    def test_append_missing_separator(self, test_vault):
+        """Missing separator: Handle when '---' separator is missing"""
+        handler = VaultHandler(str(test_vault))
+        test_date = date(2025, 1, 15)
+
+        # Create daily note
+        note_path = handler.create_daily_note(target_date=test_date)
+
+        # Remove separator after Quick Capture
+        content = note_path.read_text(encoding='utf-8')
+        # Find and remove the first --- after Quick Capture
+        qc_start = content.find("## Quick Capture")
+        separator_pos = content.find("---", qc_start)
+        next_separator_pos = content.find("---", separator_pos + 3)
+        # Remove the first --- (keep the placeholder but remove separator)
+        content = content[:separator_pos] + content[separator_pos+4:next_separator_pos] + content[next_separator_pos:]
+        note_path.write_text(content, encoding='utf-8')
+
+        # Append text
+        handler.append_to_daily_note("Test text", target_date=test_date)
+
+        # Verify it worked (found next ## heading as boundary)
+        content_after = note_path.read_text(encoding='utf-8')
+        qc_start = content_after.find("## Quick Capture")
+        next_heading = content_after.find("##", qc_start + 1)
+        qc_section = content_after[qc_start:next_heading]
+
+        assert "- Test text" in qc_section
+
+    # Robustness Tests
+
+    def test_append_preserves_other_sections(self, test_vault):
+        """Other sections: Modifications only in Quick Capture section"""
+        handler = VaultHandler(str(test_vault))
+        test_date = date(2025, 1, 15)
+
+        # Create daily note
+        note_path = handler.create_daily_note(target_date=test_date)
+        original_content = note_path.read_text(encoding='utf-8')
+
+        # Extract sections other than Quick Capture
+        frontmatter_end = original_content.find("---", 3)  # Find second ---
+        frontmatter = original_content[:frontmatter_end+3]
+
+        trackers_start = original_content.find("## Trackers")
+        trackers_section = original_content[trackers_start:]
+
+        # Append to Quick Capture
+        handler.append_to_daily_note("Test capture", target_date=test_date)
+
+        # Verify other sections unchanged
+        new_content = note_path.read_text(encoding='utf-8')
+
+        # Frontmatter should be identical
+        new_frontmatter = new_content[:frontmatter_end+3]
+        assert new_frontmatter == frontmatter
+
+        # Trackers section should be identical
+        new_trackers_start = new_content.find("## Trackers")
+        new_trackers_section = new_content[new_trackers_start:]
+        assert new_trackers_section == trackers_section
+
+    def test_append_special_characters(self, test_vault):
+        """Special chars: Handle markdown special characters correctly"""
+        handler = VaultHandler(str(test_vault))
+        test_date = date(2025, 1, 15)
+
+        # Create daily note
+        note_path = handler.create_daily_note(target_date=test_date)
+
+        # Append text with special markdown characters
+        special_text = "Test #tag [[link]] - bullet *italic* **bold**"
+        handler.append_to_daily_note(special_text, target_date=test_date)
+
+        # Verify text preserved exactly
+        content = note_path.read_text(encoding='utf-8')
+        assert special_text in content
+
+    def test_append_unicode_and_emoji(self, test_vault):
+        """Unicode: Handle unicode and emoji correctly"""
+        handler = VaultHandler(str(test_vault))
+        test_date = date(2025, 1, 15)
+
+        # Create daily note
+        note_path = handler.create_daily_note(target_date=test_date)
+
+        # Append text with unicode and emoji
+        unicode_text = "Parking 🚗 Level 中文测试"
+        handler.append_to_daily_note(unicode_text, target_date=test_date)
+
+        # Verify text preserved with correct encoding
+        content = note_path.read_text(encoding='utf-8')
+        assert unicode_text in content
+        assert isinstance(content, str)
+
+    def test_append_whitespace_placeholder_variations(self, test_vault):
+        """Whitespace: Handle '- ', '-  ', '-\\t', etc."""
+        handler = VaultHandler(str(test_vault))
+        test_date = date(2025, 1, 15)
+
+        # Test with extra spaces
+        note_path = handler.create_daily_note(target_date=test_date)
+        content = note_path.read_text(encoding='utf-8')
+        # Replace '- ' with '-  ' (two spaces)
+        content = content.replace("## Quick Capture\n- \n", "## Quick Capture\n-  \n")
+        note_path.write_text(content, encoding='utf-8')
+
+        handler.append_to_daily_note("Test", target_date=test_date)
+
+        content_after = note_path.read_text(encoding='utf-8')
+        assert "- Test" in content_after
+
+        # Test with tab
+        test_date2 = date(2025, 1, 16)
+        note_path2 = handler.daily_notes_folder / "2025-01-16.md"
+        handler.create_daily_note(target_date=test_date2)
+        content2 = note_path2.read_text(encoding='utf-8')
+        content2 = content2.replace("## Quick Capture\n- \n", "## Quick Capture\n-\t\n")
+        note_path2.write_text(content2, encoding='utf-8')
+
+        handler.append_to_daily_note("Test2", target_date=test_date2)
+
+        content2_after = note_path2.read_text(encoding='utf-8')
+        # Should handle tab variation
+        assert "- Test2" in content2_after or "Test2" in content2_after
+
+
 class TestIntegration:
     """Integration tests for append_to_daily_note"""
 
@@ -242,7 +534,7 @@ class TestIntegration:
         assert not expected_path.exists()
 
         # Call append (which should create the note)
-        handler.append_to_daily_note("Test text")
+        handler.append_to_daily_note("Test text", target_date=today)
 
         # Verify note was created
         assert expected_path.exists()
@@ -263,10 +555,140 @@ class TestIntegration:
         original_content = note_path.read_text(encoding='utf-8')
 
         # Call append on existing note
-        handler.append_to_daily_note("Test text")
+        handler.append_to_daily_note("Test text", target_date=today)
 
-        # Verify note still exists and content unchanged (TODO logic not implemented yet)
+        # Verify note still exists and text was appended
         assert note_path.exists()
         current_content = note_path.read_text(encoding='utf-8')
-        # Content should be unchanged since append is not yet implemented
-        assert current_content == original_content
+        # Content should now contain the appended text
+        assert "Test text" in current_content
+
+    def test_integration_first_capture_full_flow(self, test_vault):
+        """E2E: Full flow from QuickCapture.process() to file modification"""
+        from quick_capture import QuickCapture
+
+        handler = VaultHandler(str(test_vault))
+        quick_capture = QuickCapture(handler)
+        test_date = date.today()
+
+        # Process parking level capture (should transform "pl3" → "Parking Level: 3")
+        quick_capture.process("pl3")
+
+        # Verify daily note created and contains transformed text
+        note_path = handler.daily_notes_folder / f"{test_date.strftime('%Y-%m-%d')}.md"
+        assert note_path.exists()
+
+        content = note_path.read_text(encoding='utf-8')
+        # Verify transformed text appears (not just "pl3")
+        assert "Parking Level: 3" in content
+
+        # Verify it's in the Quick Capture section
+        qc_start = content.find("## Quick Capture")
+        qc_end = content.find("---", qc_start)
+        qc_section = content[qc_start:qc_end]
+        assert "- Parking Level: 3" in qc_section
+
+    def test_integration_multiple_captures_full_flow(self, test_vault):
+        """E2E: Multiple captures from API maintain order"""
+        from quick_capture import QuickCapture
+
+        handler = VaultHandler(str(test_vault))
+        quick_capture = QuickCapture(handler)
+        test_date = date.today()
+
+        # Process multiple captures with different patterns
+        quick_capture.process("pl3")      # Parking level pattern
+        quick_capture.process("Buy milk") # Fallback handler
+        quick_capture.process("pl5")      # Parking level pattern
+
+        # Verify all captured correctly
+        note_path = handler.daily_notes_folder / f"{test_date.strftime('%Y-%m-%d')}.md"
+        content = note_path.read_text(encoding='utf-8')
+
+        # Extract Quick Capture section
+        qc_start = content.find("## Quick Capture")
+        qc_end = content.find("---", qc_start)
+        qc_section = content[qc_start:qc_end]
+
+        # Verify all three items present
+        assert "Parking Level: 5" in qc_section
+        assert "Buy milk" in qc_section
+        assert "Parking Level: 3" in qc_section
+
+        # Verify order: newest first (pl5, Buy milk, pl3)
+        pl5_pos = qc_section.find("Parking Level: 5")
+        milk_pos = qc_section.find("Buy milk")
+        pl3_pos = qc_section.find("Parking Level: 3")
+
+        assert pl5_pos < milk_pos < pl3_pos, "Order should be: pl5, Buy milk, pl3 (newest first)"
+
+
+class TestQuickCaptureEdgeCases:
+    """Edge case tests for quick capture functionality"""
+
+    def test_append_empty_string(self, test_vault):
+        """Edge case: Handle empty string input"""
+        handler = VaultHandler(str(test_vault))
+        test_date = date(2025, 1, 15)
+
+        # Create daily note
+        note_path = handler.create_daily_note(target_date=test_date)
+        content_before = note_path.read_text(encoding='utf-8')
+
+        # Append empty string
+        handler.append_to_daily_note("", target_date=test_date)
+
+        # Verify behavior (either skip or create empty item)
+        content_after = note_path.read_text(encoding='utf-8')
+
+        # Implementation can choose to:
+        # 1. Skip operation (content unchanged)
+        # 2. Create empty item "- "
+        # Both are acceptable - test checks implementation doesn't crash
+        assert note_path.exists()
+
+    def test_append_multiline_text(self, test_vault):
+        """Edge case: Handle text with newlines"""
+        handler = VaultHandler(str(test_vault))
+        test_date = date(2025, 1, 15)
+
+        # Create daily note
+        note_path = handler.create_daily_note(target_date=test_date)
+
+        # Append multiline text
+        multiline_text = "Line 1\nLine 2\nLine 3"
+        handler.append_to_daily_note(multiline_text, target_date=test_date)
+
+        # Verify text appears in file (implementation determines format)
+        content = note_path.read_text(encoding='utf-8')
+
+        # Text should appear somewhere in Quick Capture section
+        qc_start = content.find("## Quick Capture")
+        qc_end = content.find("---", qc_start)
+        qc_section = content[qc_start:qc_end]
+
+        # At minimum, the text should be present (may be formatted differently)
+        assert "Line 1" in qc_section
+        assert "Line 2" in qc_section
+        assert "Line 3" in qc_section
+
+    def test_append_very_long_text(self, test_vault):
+        """Edge case: Handle very long text (1000+ chars)"""
+        handler = VaultHandler(str(test_vault))
+        test_date = date(2025, 1, 15)
+
+        # Create daily note
+        note_path = handler.create_daily_note(target_date=test_date)
+
+        # Create a very long string (1000 characters)
+        long_text = "A" * 1000
+
+        # Append long text
+        handler.append_to_daily_note(long_text, target_date=test_date)
+
+        # Verify text fully preserved
+        content = note_path.read_text(encoding='utf-8')
+        assert long_text in content
+
+        # Verify file I/O handles large content
+        assert len(content) > 1000
