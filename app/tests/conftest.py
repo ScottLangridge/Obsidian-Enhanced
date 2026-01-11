@@ -57,3 +57,36 @@ def test_client(monkeypatch):
     # Create and return test client
     from fastapi.testclient import TestClient
     return TestClient(server.app)
+
+
+@pytest.fixture
+def test_vault(tmp_path):
+    """Create test vault with template structure
+
+    Args:
+        tmp_path: pytest fixture providing temporary directory
+
+    Returns:
+        Path: Root path of the test vault
+    """
+    vault_path = tmp_path / "vault"
+    template_dir = vault_path / "一 Obsidian 一" / "Templates"
+    template_dir.mkdir(parents=True)
+
+    # Create template with real Templater variables
+    template_content = """---
+tags:
+  - daily_note
+---
+<< [[<% fileDate = moment(tp.file.title, 'YYYY-MM-DD').subtract(1, 'd').format('YYYY-MM-DD') %>|Yesterday]] | [[<% fileDate = moment(tp.file.title, 'YYYY-MM-DD').add(1, 'd').format('YYYY-MM-DD') %>|Tomorrow]] >>
+
+---
+## Quick Capture
+-
+
+---
+- [ ]  #todo/handle_inbox 🛫 <%tp.date.now()%>
+"""
+    (template_dir / "Daily Note.md").write_text(template_content, encoding='utf-8')
+
+    return vault_path
