@@ -17,7 +17,7 @@ test:
 	docker compose run --rm app pytest tests/ -v
 
 test-cov:
-	docker compose run --rm app pytest tests/ --cov=app --cov-report=html --cov-report=term
+	docker compose run --rm app pytest tests/ --cov --cov-report=term
 
 shell:
 	docker compose run --rm app bash
