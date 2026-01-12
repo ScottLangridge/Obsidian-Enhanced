@@ -39,6 +39,26 @@ make clean         # Remove containers and prune Docker system
 ### Development Workflow
 The Docker container uses `--reload` flag with uvicorn, so code changes in `./app/` are automatically reloaded without restarting the container.
 
+## Configuration
+
+### Vault Location
+The application requires access to an Obsidian vault. The vault location is configured via environment variable:
+
+- **Environment Variable**: `OBSIDIAN_VAULT_PATH`
+- **Default**: `./vault` (relative to project root)
+- **Configuration File**: `.env` (not tracked in git)
+- **Example File**: `.env.example` (tracked in git, copy to `.env`)
+
+**Container Behavior**:
+- Host vault path (configured via env var) is mounted to `/vault` inside container
+- Application code references `/vault` as the internal container path
+- Tests use mock vault handlers or temporary directories
+
+**Adding New Vault Path References**:
+- Always use the `VaultHandler.vault_path` property, never hardcode paths
+- In tests, use fixtures from `conftest.py` that provide mocked or temporary vaults
+- Container path `/vault` should remain stable to avoid widespread refactoring
+
 ## Architecture
 
 ### Core Components

@@ -624,6 +624,158 @@ class TestIntegration:
         assert pl5_pos < milk_pos < pl3_pos, "Order should be: pl5, Buy milk, pl3 (newest first)"
 
 
+class TestVaultLocationConfiguration:
+    """Tests for custom vault location configuration"""
+
+    def test_custom_vault_location_works_correctly(self, tmp_path):
+        """Verify VaultHandler works with a non-default vault location"""
+        # Create a custom vault at a non-default location
+        custom_vault_path = tmp_path / "custom_location" / "my_vault"
+        template_dir = custom_vault_path / "一 Obsidian 一" / "Templates"
+        template_dir.mkdir(parents=True)
+
+        # Create template
+        template_content = """---
+tags:
+  - daily_note
+---
+<< [[<% fileDate = moment(tp.file.title, 'YYYY-MM-DD').subtract(1, 'd').format('YYYY-MM-DD') %>|Yesterday]] | [[<% fileDate = moment(tp.file.title, 'YYYY-MM-DD').add(1, 'd').format('YYYY-MM-DD') %>|Tomorrow]] >>
+
+---
+## Quick Capture
+-
+---
+## Trackers
+- [weight::]
+---
+- [ ]  #todo/handle_inbox 🛫 <%tp.date.now()%>
+"""
+        (template_dir / "Daily Note.md").write_text(template_content, encoding='utf-8')
+
+        # Initialize VaultHandler with custom path
+        handler = VaultHandler(str(custom_vault_path))
+        test_date = date(2025, 1, 15)
+
+        # Verify vault_path is set correctly
+        assert handler.vault_path == custom_vault_path
+        assert str(custom_vault_path) in str(handler.vault_path)
+        assert "my_vault" in str(handler.vault_path)
+
+        # Verify daily note creation works with custom location
+        note_path = handler.create_daily_note(target_date=test_date)
+
+        # Verify note was created in the custom location
+        assert note_path.exists()
+        assert note_path.name == "2025-01-15.md"
+        assert custom_vault_path in note_path.parents
+        assert str(custom_vault_path) in str(note_path)
+
+        # Verify content is correct
+        content = note_path.read_text(encoding='utf-8')
+        assert "2025-01-14" in content  # Yesterday
+        assert "2025-01-16" in content  # Tomorrow
+        assert "## Quick Capture" in content
+
+        # Verify append works with custom location
+        handler.append_to_daily_note("Test capture from custom vault", target_date=test_date)
+        content_after = note_path.read_text(encoding='utf-8')
+        assert "Test capture from custom vault" in content_after
+
+    def test_invalid_vault_location_fails_appropriately(self, tmp_path):
+        """Verify VaultHandler fails when vault location doesn't exist"""
+        # Use a path that definitely doesn't exist
+        invalid_vault_path = tmp_path / "notavault" / "this_does_not_exist"
+
+        # Verify the path doesn't exist
+        assert not invalid_vault_path.exists()
+
+        # Initialize VaultHandler with invalid path
+        handler = VaultHandler(str(invalid_vault_path))
+        test_date = date(2025, 1, 15)
+
+        # Attempt to create daily note should fail with FileNotFoundError
+        # because the template won't exist at the invalid location
+        with pytest.raises(FileNotFoundError) as exc_info:
+            handler.create_daily_note(target_date=test_date)
+
+        # Verify error message indicates template not found
+        assert "Template not found" in str(exc_info.value)
+        assert str(handler.template_path) in str(exc_info.value)
+
+    def test_vault_location_missing_template_fails(self, tmp_path):
+        """Verify VaultHandler fails when vault exists but template doesn't"""
+        # Create vault directory structure but without the template
+        partial_vault_path = tmp_path / "partial_vault"
+        template_dir = partial_vault_path / "一 Obsidian 一" / "Templates"
+        template_dir.mkdir(parents=True)
+
+        # Don't create the template file
+
+        # Initialize VaultHandler
+        handler = VaultHandler(str(partial_vault_path))
+        test_date = date(2025, 1, 15)
+
+        # Verify template path doesn't exist
+        assert not handler.template_path.exists()
+
+        # Attempt to create daily note should fail
+        with pytest.raises(FileNotFoundError) as exc_info:
+            handler.create_daily_note(target_date=test_date)
+
+        assert "Template not found" in str(exc_info.value)
+
+    def test_multiple_vault_locations_independently(self, tmp_path):
+        """Verify multiple VaultHandlers can work with different vault locations"""
+        # Create two separate vault locations
+        vault1_path = tmp_path / "vault1"
+        vault2_path = tmp_path / "vault2"
+
+        # Setup vault1
+        template_dir1 = vault1_path / "一 Obsidian 一" / "Templates"
+        template_dir1.mkdir(parents=True)
+        template_content = """---
+tags:
+  - daily_note
+---
+## Quick Capture
+-
+---
+"""
+        (template_dir1 / "Daily Note.md").write_text(template_content, encoding='utf-8')
+
+        # Setup vault2 (identical structure)
+        template_dir2 = vault2_path / "一 Obsidian 一" / "Templates"
+        template_dir2.mkdir(parents=True)
+        (template_dir2 / "Daily Note.md").write_text(template_content, encoding='utf-8')
+
+        # Create two handlers pointing to different vaults
+        handler1 = VaultHandler(str(vault1_path))
+        handler2 = VaultHandler(str(vault2_path))
+        test_date = date(2025, 1, 15)
+
+        # Create notes in both vaults
+        note1_path = handler1.create_daily_note(target_date=test_date)
+        note2_path = handler2.create_daily_note(target_date=test_date)
+
+        # Verify notes are in different locations
+        assert note1_path != note2_path
+        assert vault1_path in note1_path.parents
+        assert vault2_path in note2_path.parents
+
+        # Verify both notes exist independently
+        assert note1_path.exists()
+        assert note2_path.exists()
+
+        # Modify one vault, verify the other is unaffected
+        handler1.append_to_daily_note("Text in vault1", target_date=test_date)
+
+        content1 = note1_path.read_text(encoding='utf-8')
+        content2 = note2_path.read_text(encoding='utf-8')
+
+        assert "Text in vault1" in content1
+        assert "Text in vault1" not in content2
+
+
 class TestQuickCaptureEdgeCases:
     """Edge case tests for quick capture functionality"""
 
