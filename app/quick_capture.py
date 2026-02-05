@@ -20,8 +20,7 @@ class QuickCapture:
             (r'^\s*(?:w|weight)\s*(\d+(?:\.\d+)?)\s*$', self.handle_weight),
             (r'^\s*pl(\d)\s*$', self.handle_parking_level),
             (r'^\s*(task|todo)\s([\s\S]+)$', self.handle_todo_task),
-            # Add more rules here as needed:
-            # (r'^\[\[(.+)\]\]', self.handle_wiki_link),
+            (r'^\s*embed\s+(.+)$', self.handle_embed_journal),
         ]
 
     def process(self, text: str) -> None:
@@ -92,6 +91,19 @@ class QuickCapture:
         # Note: append_to_daily_note adds the "- " prefix automatically
         formatted_text = f"[ ] #todo {task_content}"
         self.vault_handler.append_to_daily_note(formatted_text)
+
+    def handle_embed_journal(self, text: str, match: re.Match) -> None:
+        """Handle EMBED journal captures (e.g., 'embed filter coffee' -> bullet in EMBED journal)
+
+        Args:
+            text: The original captured text
+            match: The regex match object
+        """
+        message = match.group(1).strip()
+        if not message:
+            self.handle_fallback(text)
+            return
+        self.vault_handler.append_to_embed_journal(message)
 
     def handle_fallback(self, text: str) -> None:
         """Fallback handler - add to daily note as-is

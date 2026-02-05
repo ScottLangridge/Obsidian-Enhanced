@@ -1,7 +1,8 @@
 """Tests for QuickCapture rule matching and text processing"""
 
 import pytest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
+from datetime import datetime
 
 
 class TestParkingLevelPattern:
@@ -239,3 +240,71 @@ class TestVaultIntegration:
         # Verify there's no double dash
         assert "- - [ ] #todo" not in content, \
             f"Found double dash in file content:\n{content}"
+
+
+class TestEmbedJournalPattern:
+    """Test embed journal pattern matching (embed <message>, case-insensitive, whitespace handling)"""
+
+    def test_embed_basic(self, quick_capture_instance, mock_vault_handler):
+        """Embed Journal (Basic): 'embed filter coffee' calls append_to_embed_journal"""
+        quick_capture_instance.process("embed filter coffee")
+        mock_vault_handler.append_to_embed_journal.assert_called_once_with("filter coffee")
+
+    def test_embed_case_insensitive_uppercase(self, quick_capture_instance, mock_vault_handler):
+        """Embed Journal (Case Insensitive - EMBED): 'EMBED test' calls handler"""
+        quick_capture_instance.process("EMBED test")
+        mock_vault_handler.append_to_embed_journal.assert_called_once_with("test")
+
+    def test_embed_case_insensitive_mixed(self, quick_capture_instance, mock_vault_handler):
+        """Embed Journal (Case Insensitive - Embed): 'Embed test' calls handler"""
+        quick_capture_instance.process("Embed test")
+        mock_vault_handler.append_to_embed_journal.assert_called_once_with("test")
+
+    def test_embed_leading_whitespace(self, quick_capture_instance, mock_vault_handler):
+        """Embed Journal (Leading Whitespace): '  embed test' calls handler"""
+        quick_capture_instance.process("  embed test")
+        mock_vault_handler.append_to_embed_journal.assert_called_once_with("test")
+
+    def test_embed_trailing_whitespace_in_message(self, quick_capture_instance, mock_vault_handler):
+        """Embed Journal (Trailing Whitespace): 'embed test  ' strips trailing whitespace"""
+        quick_capture_instance.process("embed test  ")
+        mock_vault_handler.append_to_embed_journal.assert_called_once_with("test")
+
+    def test_embed_multi_word_message(self, quick_capture_instance, mock_vault_handler):
+        """Embed Journal (Multi Word): 'embed filter coffee with milk' preserves full message"""
+        quick_capture_instance.process("embed filter coffee with milk")
+        mock_vault_handler.append_to_embed_journal.assert_called_once_with("filter coffee with milk")
+
+    def test_embed_message_with_commas(self, quick_capture_instance, mock_vault_handler):
+        """Embed Journal (Commas): 'embed getting hungry, waiting for 11' preserves commas"""
+        quick_capture_instance.process("embed getting hungry, waiting for 11")
+        mock_vault_handler.append_to_embed_journal.assert_called_once_with("getting hungry, waiting for 11")
+
+    def test_embed_no_message_falls_back(self, quick_capture_instance, mock_vault_handler):
+        """Embed Journal (No Message): 'embed' without content goes to fallback"""
+        quick_capture_instance.process("embed")
+        mock_vault_handler.append_to_embed_journal.assert_not_called()
+        mock_vault_handler.append_to_daily_note.assert_called_once_with("embed")
+
+    def test_embed_only_whitespace_after_falls_back(self, quick_capture_instance, mock_vault_handler):
+        """Embed Journal (Only Whitespace After): 'embed   ' goes to fallback"""
+        quick_capture_instance.process("embed   ")
+        mock_vault_handler.append_to_embed_journal.assert_not_called()
+        mock_vault_handler.append_to_daily_note.assert_called_once_with("embed   ")
+
+    def test_embedded_does_not_match(self, quick_capture_instance, mock_vault_handler):
+        """Embed Journal (No Partial Match): 'embedded something' does not trigger embed rule"""
+        quick_capture_instance.process("embedded something")
+        mock_vault_handler.append_to_embed_journal.assert_not_called()
+        mock_vault_handler.append_to_daily_note.assert_called_once_with("embedded something")
+
+    def test_embed_special_characters(self, quick_capture_instance, mock_vault_handler):
+        """Embed Journal (Special Characters): Message with special chars is preserved"""
+        quick_capture_instance.process("embed test @#$%^&*()")
+        mock_vault_handler.append_to_embed_journal.assert_called_once_with("test @#$%^&*()")
+
+    def test_embed_does_not_conflict_with_other_rules(self, quick_capture_instance, mock_vault_handler):
+        """Embed Journal (No Conflict): 'pl3' still matches parking level, not embed"""
+        quick_capture_instance.process("pl3")
+        mock_vault_handler.append_to_embed_journal.assert_not_called()
+        mock_vault_handler.append_to_daily_note.assert_called_once_with("Parking Level: 3")
