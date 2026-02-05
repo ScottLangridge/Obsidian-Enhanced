@@ -312,7 +312,7 @@ class VaultHandler:
         """Append a timestamped entry to the EMBED journal for the given date
 
         Creates the journal file if it doesn't exist. Entries are added as bullet
-        points with the current time prepended (e.g., "- 09:15, filter coffee").
+        points with the current time prepended (e.g., "- 09:15 - filter coffee").
 
         Args:
             text: The message to add (timestamp will be prepended automatically)
@@ -329,7 +329,7 @@ class VaultHandler:
 
             # Build timestamped entry
             timestamp = datetime.now().strftime('%H:%M')
-            entry = f"- {timestamp}, {text}"
+            entry = f"- {timestamp} - {text}"
 
             if note_path.exists():
                 # Append to existing file
@@ -342,7 +342,7 @@ class VaultHandler:
                     logger.error(f"Permission denied reading {note_path}: {e}")
                     return
 
-                lines = content.split('\n')
+                lines = content.splitlines()
 
                 # Check for trailing placeholder (empty bullet "- " or "-")
                 # Search from the end for the last non-empty line
@@ -358,7 +358,7 @@ class VaultHandler:
                 else:
                     lines.append(entry)
 
-                new_content = '\n'.join(lines)
+                new_content = '\n'.join(lines) + '\n'
             else:
                 # Create new file
                 journal_folder.mkdir(parents=True, exist_ok=True)

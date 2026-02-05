@@ -23,7 +23,7 @@ class TestAppendToEmbedJournal:
         journal_path = tmp_path / "Projects" / "EMBED Study" / "Journal" / "2026-05-03 - EMBED Journal.md"
         assert journal_path.exists()
         content = journal_path.read_text(encoding='utf-8')
-        assert content == "- 09:15, filter coffee\n"
+        assert content == "- 09:15 - filter coffee\n"
 
     @patch('vault_handler.datetime')
     def test_creates_directory_structure(self, mock_datetime, tmp_path):
@@ -47,7 +47,7 @@ class TestAppendToEmbedJournal:
         journal_dir = tmp_path / "Projects" / "EMBED Study" / "Journal"
         journal_dir.mkdir(parents=True)
         journal_path = journal_dir / "2026-05-03 - EMBED Journal.md"
-        journal_path.write_text("- 09:15, filter coffee\n", encoding='utf-8')
+        journal_path.write_text("- 09:15 - filter coffee\n", encoding='utf-8')
 
         mock_datetime.now.return_value = datetime(2026, 5, 3, 10, 30)
         mock_datetime.side_effect = lambda *args, **kwargs: datetime(*args, **kwargs)
@@ -56,8 +56,8 @@ class TestAppendToEmbedJournal:
         vh.append_to_embed_journal("getting hungry", target_date=date(2026, 5, 3))
 
         content = journal_path.read_text(encoding='utf-8')
-        assert "- 09:15, filter coffee" in content
-        assert "- 10:30, getting hungry" in content
+        assert "- 09:15 - filter coffee" in content
+        assert "- 10:30 - getting hungry" in content
 
     @patch('vault_handler.datetime')
     def test_replaces_trailing_placeholder(self, mock_datetime, tmp_path):
@@ -67,7 +67,7 @@ class TestAppendToEmbedJournal:
         journal_dir = tmp_path / "Projects" / "EMBED Study" / "Journal"
         journal_dir.mkdir(parents=True)
         journal_path = journal_dir / "2026-05-03 - EMBED Journal.md"
-        journal_path.write_text("- 09:15, filter coffee\n- \n", encoding='utf-8')
+        journal_path.write_text("- 09:15 - filter coffee\n- \n", encoding='utf-8')
 
         mock_datetime.now.return_value = datetime(2026, 5, 3, 10, 30)
         mock_datetime.side_effect = lambda *args, **kwargs: datetime(*args, **kwargs)
@@ -76,8 +76,8 @@ class TestAppendToEmbedJournal:
         vh.append_to_embed_journal("getting hungry", target_date=date(2026, 5, 3))
 
         content = journal_path.read_text(encoding='utf-8')
-        assert "- 09:15, filter coffee" in content
-        assert "- 10:30, getting hungry" in content
+        assert "- 09:15 - filter coffee" in content
+        assert "- 10:30 - getting hungry" in content
         # Placeholder should be replaced, not duplicated
         lines = [l for l in content.split('\n') if l.strip()]
         assert len(lines) == 2
@@ -95,7 +95,7 @@ class TestAppendToEmbedJournal:
 
         journal_path = tmp_path / "Projects" / "EMBED Study" / "Journal" / "2026-05-03 - EMBED Journal.md"
         content = journal_path.read_text(encoding='utf-8')
-        assert "- 14:05, afternoon snack" in content
+        assert "- 14:05 - afternoon snack" in content
 
     @patch('vault_handler.datetime')
     def test_correct_filename_format(self, mock_datetime, tmp_path):
@@ -153,9 +153,9 @@ class TestAppendToEmbedJournal:
         content = journal_path.read_text(encoding='utf-8')
         lines = [l for l in content.split('\n') if l.strip()]
         assert len(lines) == 3
-        assert lines[0] == "- 09:15, filter coffee"
-        assert lines[1] == "- 10:30, getting hungry"
-        assert lines[2] == "- 12:00, lunch time"
+        assert lines[0] == "- 09:15 - filter coffee"
+        assert lines[1] == "- 10:30 - getting hungry"
+        assert lines[2] == "- 12:00 - lunch time"
 
 
 class TestEmbedJournalEndToEnd:
@@ -181,7 +181,7 @@ class TestEmbedJournalEndToEnd:
         journal_path = tmp_path / "Projects" / "EMBED Study" / "Journal" / "2026-05-03 - EMBED Journal.md"
         assert journal_path.exists()
         content = journal_path.read_text(encoding='utf-8')
-        assert "- 09:15, filter coffee" in content
+        assert "- 09:15 - filter coffee" in content
 
     @patch('vault_handler.datetime')
     def test_e2e_embed_case_insensitive(self, mock_datetime, tmp_path):
@@ -202,7 +202,7 @@ class TestEmbedJournalEndToEnd:
 
         journal_path = tmp_path / "Projects" / "EMBED Study" / "Journal" / "2026-05-03 - EMBED Journal.md"
         content = journal_path.read_text(encoding='utf-8')
-        assert "- 10:00, test message" in content
+        assert "- 10:00 - test message" in content
 
     @patch('vault_handler.datetime')
     def test_e2e_embed_multiple_captures(self, mock_datetime, tmp_path):
@@ -227,5 +227,5 @@ class TestEmbedJournalEndToEnd:
 
         journal_path = tmp_path / "Projects" / "EMBED Study" / "Journal" / "2026-05-03 - EMBED Journal.md"
         content = journal_path.read_text(encoding='utf-8')
-        assert "- 09:15, filter coffee" in content
-        assert "- 10:30, getting hungry" in content
+        assert "- 09:15 - filter coffee" in content
+        assert "- 10:30 - getting hungry" in content
