@@ -3,7 +3,7 @@
 import logging
 import re
 from pathlib import Path
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +24,9 @@ SECTION_SEPARATOR = "---"
 # Trackers constants
 TRACKERS_HEADING = "## Trackers"
 WEIGHT_TAG_PATTERN = re.compile(r'^\s*-\s*\[weight::(?:\d+(?:\.\d+)?)?\]\s*$')  # Matches "- [weight::]" or "- [weight::70.3]"
+
+# EMBED Journal constants
+EMBED_JOURNAL_FOLDER = Path("Projects") / "EMBED Study" / "Journal"
 
 
 class VaultHandler:
@@ -303,4 +306,72 @@ class VaultHandler:
 
         except Exception as e:
             logger.exception(f"Unexpected error populating weight tag: {e}")
+            raise
+
+    def append_to_embed_journal(self, text: str, target_date: date = None) -> None:
+        """Append a timestamped entry to the EMBED journal for the given date
+
+        Creates the journal file if it doesn't exist. Entries are added as bullet
+        points with the current time prepended (e.g., "- 09:15 - filter coffee").
+
+        Args:
+            text: The message to add (timestamp will be prepended automatically)
+            target_date: Date of the journal entry (defaults to today)
+        """
+        try:
+            if target_date is None:
+                target_date = date.today()
+
+            # Build file path
+            journal_folder = self.vault_path / EMBED_JOURNAL_FOLDER
+            note_filename = target_date.strftime('%Y-%m-%d') + " - EMBED Journal.md"
+            note_path = journal_folder / note_filename
+
+            # Build timestamped entry
+            timestamp = datetime.now().strftime('%H:%M')
+            entry = f"- {timestamp} - {text}"
+
+            if note_path.exists():
+                # Append to existing file
+                try:
+                    content = note_path.read_text(encoding='utf-8')
+                except UnicodeDecodeError as e:
+                    logger.error(f"Encoding error reading {note_path}: {e}")
+                    return
+                except PermissionError as e:
+                    logger.error(f"Permission denied reading {note_path}: {e}")
+                    return
+
+                lines = content.splitlines()
+
+                # Check for trailing placeholder (empty bullet "- " or "-")
+                # Search from the end for the last non-empty line
+                placeholder_idx = None
+                for i in range(len(lines) - 1, -1, -1):
+                    if lines[i].strip():
+                        if PLACEHOLDER_PATTERN.match(lines[i]):
+                            placeholder_idx = i
+                        break
+
+                if placeholder_idx is not None:
+                    lines[placeholder_idx] = entry
+                else:
+                    lines.append(entry)
+
+                new_content = '\n'.join(lines) + '\n'
+            else:
+                # Create new file
+                journal_folder.mkdir(parents=True, exist_ok=True)
+                new_content = entry + '\n'
+
+            # Write file
+            try:
+                note_path.write_text(new_content, encoding='utf-8')
+                logger.info(f"Appended to EMBED journal: {entry}")
+            except PermissionError as e:
+                logger.error(f"Permission denied writing {note_path}: {e}")
+                return
+
+        except Exception as e:
+            logger.exception(f"Unexpected error appending to EMBED journal: {e}")
             raise
