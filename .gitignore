@@ -17,6 +17,7 @@ venv/
 
 # Obsidian Vault (completely excluded - use your own vault location)
 vault/
+data/
 
 # OS
 .DS_Store
