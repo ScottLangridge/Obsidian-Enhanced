@@ -135,3 +135,33 @@ class TestWeightPattern:
         """Weight (rounding half): 'w70.35' rounds to [weight::70.4] (round half up)"""
         quick_capture_instance.process("w70.35")
         mock_vault_handler.populate_weight_tag.assert_called_once_with("70.4")
+
+    def test_weight_colon_separator(self, quick_capture_instance, mock_vault_handler):
+        """Weight (Colon): 'weight: 70.3' strips colon separator"""
+        quick_capture_instance.process("weight: 70.3")
+        mock_vault_handler.populate_weight_tag.assert_called_once_with("70.3")
+
+    def test_weight_colon_with_spaces(self, quick_capture_instance, mock_vault_handler):
+        """Weight (Colon With Spaces): 'weight : 70.3' strips colon and surrounding spaces"""
+        quick_capture_instance.process("weight : 70.3")
+        mock_vault_handler.populate_weight_tag.assert_called_once_with("70.3")
+
+    def test_weight_dash_separator(self, quick_capture_instance, mock_vault_handler):
+        """Weight (Dash): 'weight - 70.3' strips dash separator"""
+        quick_capture_instance.process("weight - 70.3")
+        mock_vault_handler.populate_weight_tag.assert_called_once_with("70.3")
+
+    def test_weight_emdash_separator(self, quick_capture_instance, mock_vault_handler):
+        """Weight (Em Dash): 'weight — 70.3' strips em dash separator"""
+        quick_capture_instance.process("weight — 70.3")
+        mock_vault_handler.populate_weight_tag.assert_called_once_with("70.3")
+
+    def test_w_colon_does_not_match(self, quick_capture_instance, mock_vault_handler):
+        """Weight (w no colon): 'w: 70.3' should NOT match weight rule, goes to fallback"""
+        quick_capture_instance.process("w: 70.3")
+        mock_vault_handler.populate_weight_tag.assert_not_called()
+
+    def test_w_dash_does_not_match(self, quick_capture_instance, mock_vault_handler):
+        """Weight (w no dash): 'w - 70.3' should NOT match weight rule, goes to fallback"""
+        quick_capture_instance.process("w - 70.3")
+        mock_vault_handler.populate_weight_tag.assert_not_called()

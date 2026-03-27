@@ -132,9 +132,9 @@ class TestTodoTaskPattern:
         mock_vault_handler.append_to_daily_note.assert_called_once_with("[ ] #todo 你好世界 café naïve 🚗")
 
     def test_task_with_extra_spaces_between_words(self, quick_capture_instance, mock_vault_handler):
-        """Todo/Task (Extra Spaces): 'task  buy   milk' preserves spacing in content"""
+        """Todo/Task (Extra Spaces): 'task  buy   milk' strips separator whitespace, preserves content spacing"""
         quick_capture_instance.process("task  buy   milk")
-        mock_vault_handler.append_to_daily_note.assert_called_once_with("[ ] #todo  buy   milk")
+        mock_vault_handler.append_to_daily_note.assert_called_once_with("[ ] #todo buy   milk")
 
     def test_task_single_word_content(self, quick_capture_instance, mock_vault_handler):
         """Todo/Task (Single Word): 'task something' formats correctly"""
@@ -152,6 +152,31 @@ class TestTodoTaskPattern:
         quick_capture_instance.process("task   ")
         # Task with only whitespace should not match, goes to fallback
         mock_vault_handler.append_to_daily_note.assert_called_once_with("task   ")
+
+    def test_task_colon_separator(self, quick_capture_instance, mock_vault_handler):
+        """Todo/Task (Colon): 'task: buy milk' strips colon separator"""
+        quick_capture_instance.process("task: buy milk")
+        mock_vault_handler.append_to_daily_note.assert_called_once_with("[ ] #todo buy milk")
+
+    def test_task_colon_with_spaces(self, quick_capture_instance, mock_vault_handler):
+        """Todo/Task (Colon With Spaces): 'task : buy milk' strips colon and surrounding spaces"""
+        quick_capture_instance.process("task : buy milk")
+        mock_vault_handler.append_to_daily_note.assert_called_once_with("[ ] #todo buy milk")
+
+    def test_task_dash_separator(self, quick_capture_instance, mock_vault_handler):
+        """Todo/Task (Dash): 'task - buy milk' strips dash separator"""
+        quick_capture_instance.process("task - buy milk")
+        mock_vault_handler.append_to_daily_note.assert_called_once_with("[ ] #todo buy milk")
+
+    def test_task_emdash_separator(self, quick_capture_instance, mock_vault_handler):
+        """Todo/Task (Em Dash): 'task — buy milk' strips em dash separator"""
+        quick_capture_instance.process("task — buy milk")
+        mock_vault_handler.append_to_daily_note.assert_called_once_with("[ ] #todo buy milk")
+
+    def test_todo_colon_separator(self, quick_capture_instance, mock_vault_handler):
+        """Todo/Task (Todo Colon): 'todo: buy milk' strips colon separator"""
+        quick_capture_instance.process("todo: buy milk")
+        mock_vault_handler.append_to_daily_note.assert_called_once_with("[ ] #todo buy milk")
 
 
 class TestFoodLogPattern:
@@ -231,6 +256,31 @@ class TestFoodLogPattern:
         quick_capture_instance.process("pl3")
         mock_vault_handler.append_to_embed_journal.assert_not_called()
         mock_vault_handler.append_to_daily_note.assert_called_once_with("Parking Level: 3")
+
+    def test_food_log_colon_separator(self, quick_capture_instance, mock_vault_handler):
+        """Food Log (Colon): 'food log: apple' strips colon separator"""
+        quick_capture_instance.process("food log: apple")
+        mock_vault_handler.append_to_embed_journal.assert_called_once_with("apple")
+
+    def test_food_log_colon_with_spaces(self, quick_capture_instance, mock_vault_handler):
+        """Food Log (Colon With Spaces): 'food log : apple' strips colon and surrounding spaces"""
+        quick_capture_instance.process("food log : apple")
+        mock_vault_handler.append_to_embed_journal.assert_called_once_with("apple")
+
+    def test_food_log_dash_separator(self, quick_capture_instance, mock_vault_handler):
+        """Food Log (Dash): 'food log - apple' strips dash separator"""
+        quick_capture_instance.process("food log - apple")
+        mock_vault_handler.append_to_embed_journal.assert_called_once_with("apple")
+
+    def test_food_log_emdash_separator(self, quick_capture_instance, mock_vault_handler):
+        """Food Log (Em Dash): 'food log — apple' strips em dash separator"""
+        quick_capture_instance.process("food log — apple")
+        mock_vault_handler.append_to_embed_journal.assert_called_once_with("apple")
+
+    def test_food_diary_colon_separator(self, quick_capture_instance, mock_vault_handler):
+        """Food Diary (Colon): 'food diary: banana' strips colon separator"""
+        quick_capture_instance.process("food diary: banana")
+        mock_vault_handler.append_to_embed_journal.assert_called_once_with("banana")
 
 
 class TestRuleMatchingLogic:
@@ -387,3 +437,23 @@ class TestEmbedJournalPattern:
         quick_capture_instance.process("pl3")
         mock_vault_handler.append_to_embed_journal.assert_not_called()
         mock_vault_handler.append_to_daily_note.assert_called_once_with("Parking Level: 3")
+
+    def test_embed_colon_separator(self, quick_capture_instance, mock_vault_handler):
+        """Embed Journal (Colon): 'embed: filter coffee' strips colon separator"""
+        quick_capture_instance.process("embed: filter coffee")
+        mock_vault_handler.append_to_embed_journal.assert_called_once_with("filter coffee")
+
+    def test_embed_colon_with_spaces(self, quick_capture_instance, mock_vault_handler):
+        """Embed Journal (Colon With Spaces): 'embed : filter coffee' strips colon and surrounding spaces"""
+        quick_capture_instance.process("embed : filter coffee")
+        mock_vault_handler.append_to_embed_journal.assert_called_once_with("filter coffee")
+
+    def test_embed_dash_separator(self, quick_capture_instance, mock_vault_handler):
+        """Embed Journal (Dash): 'embed - filter coffee' strips dash separator"""
+        quick_capture_instance.process("embed - filter coffee")
+        mock_vault_handler.append_to_embed_journal.assert_called_once_with("filter coffee")
+
+    def test_embed_emdash_separator(self, quick_capture_instance, mock_vault_handler):
+        """Embed Journal (Em Dash): 'embed — filter coffee' strips em dash separator"""
+        quick_capture_instance.process("embed — filter coffee")
+        mock_vault_handler.append_to_embed_journal.assert_called_once_with("filter coffee")
