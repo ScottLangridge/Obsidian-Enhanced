@@ -154,6 +154,85 @@ class TestTodoTaskPattern:
         mock_vault_handler.append_to_daily_note.assert_called_once_with("task   ")
 
 
+class TestFoodLogPattern:
+    """Test food log/diary pattern matching (food log/food diary <message>, case-insensitive)"""
+
+    def test_food_log_basic(self, quick_capture_instance, mock_vault_handler):
+        """Food Log (Basic): 'food log chicken salad' calls append_to_embed_journal"""
+        quick_capture_instance.process("food log chicken salad")
+        mock_vault_handler.append_to_embed_journal.assert_called_once_with("chicken salad")
+
+    def test_food_diary_basic(self, quick_capture_instance, mock_vault_handler):
+        """Food Diary (Basic): 'food diary yogurt parfait' calls append_to_embed_journal"""
+        quick_capture_instance.process("food diary yogurt parfait")
+        mock_vault_handler.append_to_embed_journal.assert_called_once_with("yogurt parfait")
+
+    def test_food_log_case_insensitive_uppercase(self, quick_capture_instance, mock_vault_handler):
+        """Food Log (Case Insensitive - FOOD LOG): 'FOOD LOG eggs' calls handler"""
+        quick_capture_instance.process("FOOD LOG eggs")
+        mock_vault_handler.append_to_embed_journal.assert_called_once_with("eggs")
+
+    def test_food_diary_case_insensitive_uppercase(self, quick_capture_instance, mock_vault_handler):
+        """Food Diary (Case Insensitive - FOOD DIARY): 'FOOD DIARY eggs' calls handler"""
+        quick_capture_instance.process("FOOD DIARY eggs")
+        mock_vault_handler.append_to_embed_journal.assert_called_once_with("eggs")
+
+    def test_food_log_case_insensitive_mixed(self, quick_capture_instance, mock_vault_handler):
+        """Food Log (Case Insensitive - Mixed): 'Food Log banana' calls handler"""
+        quick_capture_instance.process("Food Log banana")
+        mock_vault_handler.append_to_embed_journal.assert_called_once_with("banana")
+
+    def test_food_diary_case_insensitive_mixed(self, quick_capture_instance, mock_vault_handler):
+        """Food Diary (Case Insensitive - Mixed): 'Food Diary banana' calls handler"""
+        quick_capture_instance.process("Food Diary banana")
+        mock_vault_handler.append_to_embed_journal.assert_called_once_with("banana")
+
+    def test_food_log_leading_whitespace(self, quick_capture_instance, mock_vault_handler):
+        """Food Log (Leading Whitespace): '  food log eggs' calls handler"""
+        quick_capture_instance.process("  food log eggs")
+        mock_vault_handler.append_to_embed_journal.assert_called_once_with("eggs")
+
+    def test_food_log_trailing_whitespace_in_message(self, quick_capture_instance, mock_vault_handler):
+        """Food Log (Trailing Whitespace): 'food log eggs  ' strips trailing whitespace"""
+        quick_capture_instance.process("food log eggs  ")
+        mock_vault_handler.append_to_embed_journal.assert_called_once_with("eggs")
+
+    def test_food_log_multi_word_message(self, quick_capture_instance, mock_vault_handler):
+        """Food Log (Multi Word): 'food log grilled chicken with rice and salad' preserves full message"""
+        quick_capture_instance.process("food log grilled chicken with rice and salad")
+        mock_vault_handler.append_to_embed_journal.assert_called_once_with("grilled chicken with rice and salad")
+
+    def test_food_log_no_message_falls_back(self, quick_capture_instance, mock_vault_handler):
+        """Food Log (No Message): 'food log' without content goes to fallback"""
+        quick_capture_instance.process("food log")
+        mock_vault_handler.append_to_embed_journal.assert_not_called()
+        mock_vault_handler.append_to_daily_note.assert_called_once_with("food log")
+
+    def test_food_diary_no_message_falls_back(self, quick_capture_instance, mock_vault_handler):
+        """Food Diary (No Message): 'food diary' without content goes to fallback"""
+        quick_capture_instance.process("food diary")
+        mock_vault_handler.append_to_embed_journal.assert_not_called()
+        mock_vault_handler.append_to_daily_note.assert_called_once_with("food diary")
+
+    def test_food_log_only_whitespace_after_falls_back(self, quick_capture_instance, mock_vault_handler):
+        """Food Log (Only Whitespace After): 'food log   ' goes to fallback"""
+        quick_capture_instance.process("food log   ")
+        mock_vault_handler.append_to_embed_journal.assert_not_called()
+        mock_vault_handler.append_to_daily_note.assert_called_once_with("food log   ")
+
+    def test_food_does_not_match_alone(self, quick_capture_instance, mock_vault_handler):
+        """Food Log (No Partial Match): 'food something' without log/diary keyword goes to fallback"""
+        quick_capture_instance.process("food something")
+        mock_vault_handler.append_to_embed_journal.assert_not_called()
+        mock_vault_handler.append_to_daily_note.assert_called_once_with("food something")
+
+    def test_food_log_does_not_conflict_with_other_rules(self, quick_capture_instance, mock_vault_handler):
+        """Food Log (No Conflict): 'pl3' still matches parking level, not food log"""
+        quick_capture_instance.process("pl3")
+        mock_vault_handler.append_to_embed_journal.assert_not_called()
+        mock_vault_handler.append_to_daily_note.assert_called_once_with("Parking Level: 3")
+
+
 class TestRuleMatchingLogic:
     """Test rule matching logic and ordering"""
 
