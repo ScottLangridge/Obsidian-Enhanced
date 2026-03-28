@@ -7,6 +7,9 @@ from vault_handler import VaultHandler
 
 logger = logging.getLogger(__name__)
 
+# Separator pattern: space, colon, comma, em-dash, or hyphen (with optional surrounding spaces)
+SEPARATOR = r'(?:\s*[:,—-]\s*|\s+)'
+
 
 class QuickCapture:
     """Handles classification and processing of captured text"""
@@ -17,11 +20,11 @@ class QuickCapture:
         # Define classification rules as (pattern, handler) tuples
         # Rules are checked in order - first match wins
         self.rules = [
-            (r'^\s*(?:weight(?:\s*[:,—-]\s*|\s*)|w\s*)(\d+(?:\.\d+)?)\s*$', self.handle_weight),
+            (rf'^\s*(?:weight(?:{SEPARATOR}|\s*)|w\s*)(\d+(?:\.\d+)?)\s*$', self.handle_weight),
             (r'^\s*pl(\d)\s*$', self.handle_parking_level),
-            (r'^\s*(task|todo)(?:\s*[:,—-]\s*|\s+)([\s\S]+)$', self.handle_todo_task),
-            (r'^\s*food\s+(?:log|diary)(?:\s*[:,—-]\s*|\s+)([\s\S]+)$', self.handle_embed_journal),
-            (r'^\s*embed(?:\s*[:,—-]\s*|\s+)(.+)$', self.handle_embed_journal),
+            (rf'^\s*(task|todo){SEPARATOR}([\s\S]+)$', self.handle_todo_task),
+            (rf'^\s*food\s+(?:log|diary){SEPARATOR}([\s\S]+)$', self.handle_embed_journal),
+            (rf'^\s*embed{SEPARATOR}(.+)$', self.handle_embed_journal),
         ]
 
     def process(self, text: str) -> None:
