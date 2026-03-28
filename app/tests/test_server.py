@@ -12,7 +12,7 @@ class TestGetEndpoint:
         response = test_client.get("/")
 
         # Should return 200 OK
-        assert response.status_code == 999  # intentionally broken
+        assert response.status_code == 200
 
         # Should return HTML content
         assert response.headers["content-type"].startswith("text/html")
