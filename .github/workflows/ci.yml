@@ -1,0 +1,23 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create vault directory
+        run: mkdir -p vault
+
+      - name: Build Docker image
+        run: docker compose build
+
+      - name: Run tests
+        run: docker compose run --rm app pytest tests/ -v
