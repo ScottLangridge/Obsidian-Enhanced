@@ -20,8 +20,8 @@ class QuickCapture:
             (r'^\s*(?:weight(?:\s*[:—-]\s*|\s*)|w\s*)(\d+(?:\.\d+)?)\s*$', self.handle_weight),
             (r'^\s*pl(\d)\s*$', self.handle_parking_level),
             (r'^\s*(task|todo)(?:\s*[:—-]\s*|\s+)([\s\S]+)$', self.handle_todo_task),
-            (r'^\s*food\s+(?:log|diary)(?:\s*[:—-]\s*|\s+)([\s\S]+)$', self.handle_embed_journal),
-            (r'^\s*embed(?:\s*[:—-]\s*|\s+)(.+)$', self.handle_embed_journal),
+            (r'^\s*food\s+(?:log|diary)(?:\s*[:,—-]\s*|\s+)([\s\S]+)$', self.handle_embed_journal),
+            (r'^\s*embed(?:\s*[:,—-]\s*|\s+)(.+)$', self.handle_embed_journal),
         ]
 
     def process(self, text: str) -> None:
