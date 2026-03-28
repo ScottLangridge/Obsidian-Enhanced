@@ -229,3 +229,66 @@ class TestEmbedJournalEndToEnd:
         content = journal_path.read_text(encoding='utf-8')
         assert "- 09:15 - filter coffee" in content
         assert "- 10:30 - getting hungry" in content
+
+    @patch('vault_handler.datetime')
+    def test_e2e_embed_comma_separator(self, mock_datetime, tmp_path):
+        """E2E Embed (Comma): 'embed, message' works with comma separator (speech recognition)"""
+        from vault_handler import VaultHandler
+        from quick_capture import QuickCapture
+
+        mock_datetime.now.return_value = datetime(2026, 5, 3, 9, 15)
+        mock_datetime.side_effect = lambda *args, **kwargs: datetime(*args, **kwargs)
+
+        with patch('vault_handler.date') as mock_date:
+            mock_date.today.return_value = date(2026, 5, 3)
+            mock_date.side_effect = lambda *args, **kwargs: date(*args, **kwargs)
+
+            vh = VaultHandler(str(tmp_path))
+            qc = QuickCapture(vh)
+            qc.process("embed, filter coffee")
+
+        journal_path = tmp_path / "Projects" / "EMBED Study" / "Journal" / "2026-05-03 - EMBED Journal.md"
+        content = journal_path.read_text(encoding='utf-8')
+        assert "- 09:15 - filter coffee" in content
+
+    @patch('vault_handler.datetime')
+    def test_e2e_food_log_comma_separator(self, mock_datetime, tmp_path):
+        """E2E Food Log (Comma): 'food log, entry' works with comma separator (speech recognition)"""
+        from vault_handler import VaultHandler
+        from quick_capture import QuickCapture
+
+        mock_datetime.now.return_value = datetime(2026, 5, 3, 12, 0)
+        mock_datetime.side_effect = lambda *args, **kwargs: datetime(*args, **kwargs)
+
+        with patch('vault_handler.date') as mock_date:
+            mock_date.today.return_value = date(2026, 5, 3)
+            mock_date.side_effect = lambda *args, **kwargs: date(*args, **kwargs)
+
+            vh = VaultHandler(str(tmp_path))
+            qc = QuickCapture(vh)
+            qc.process("food log, banana")
+
+        journal_path = tmp_path / "Projects" / "EMBED Study" / "Journal" / "2026-05-03 - EMBED Journal.md"
+        content = journal_path.read_text(encoding='utf-8')
+        assert "- 12:00 - banana" in content
+
+    @patch('vault_handler.datetime')
+    def test_e2e_food_diary_comma_separator(self, mock_datetime, tmp_path):
+        """E2E Food Diary (Comma): 'food diary, entry' works with comma separator"""
+        from vault_handler import VaultHandler
+        from quick_capture import QuickCapture
+
+        mock_datetime.now.return_value = datetime(2026, 5, 3, 8, 30)
+        mock_datetime.side_effect = lambda *args, **kwargs: datetime(*args, **kwargs)
+
+        with patch('vault_handler.date') as mock_date:
+            mock_date.today.return_value = date(2026, 5, 3)
+            mock_date.side_effect = lambda *args, **kwargs: date(*args, **kwargs)
+
+            vh = VaultHandler(str(tmp_path))
+            qc = QuickCapture(vh)
+            qc.process("food diary, oats")
+
+        journal_path = tmp_path / "Projects" / "EMBED Study" / "Journal" / "2026-05-03 - EMBED Journal.md"
+        content = journal_path.read_text(encoding='utf-8')
+        assert "- 08:30 - oats" in content

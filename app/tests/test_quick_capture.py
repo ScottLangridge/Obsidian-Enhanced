@@ -457,3 +457,47 @@ class TestEmbedJournalPattern:
         """Embed Journal (Em Dash): 'embed — filter coffee' strips em dash separator"""
         quick_capture_instance.process("embed — filter coffee")
         mock_vault_handler.append_to_embed_journal.assert_called_once_with("filter coffee")
+
+    def test_embed_comma_separator(self, quick_capture_instance, mock_vault_handler):
+        """Embed Journal (Comma): 'embed, filter coffee' strips comma separator"""
+        quick_capture_instance.process("embed, filter coffee")
+        mock_vault_handler.append_to_embed_journal.assert_called_once_with("filter coffee")
+
+    def test_embed_comma_separator_with_space(self, quick_capture_instance, mock_vault_handler):
+        """Embed Journal (Comma with space): 'embed , filter coffee' strips comma and space"""
+        quick_capture_instance.process("embed , filter coffee")
+        mock_vault_handler.append_to_embed_journal.assert_called_once_with("filter coffee")
+
+
+class TestCommaSeperatorAllPatterns:
+    """Test comma separator works on all pattern types"""
+
+    def test_weight_comma_separator(self, quick_capture_instance, mock_vault_handler):
+        """Weight (Comma): 'weight, 70.3' populates [weight::70.3]"""
+        quick_capture_instance.process("weight, 70.3")
+        mock_vault_handler.populate_weight_tag.assert_called_once_with("70.3")
+
+    def test_weight_comma_separator_with_spaces(self, quick_capture_instance, mock_vault_handler):
+        """Weight (Comma with spaces): 'weight , 70.3' populates [weight::70.3]"""
+        quick_capture_instance.process("weight , 70.3")
+        mock_vault_handler.populate_weight_tag.assert_called_once_with("70.3")
+
+    def test_todo_comma_separator(self, quick_capture_instance, mock_vault_handler):
+        """Todo (Comma): 'task, buy milk' formats to '- [ ] #todo buy milk'"""
+        quick_capture_instance.process("task, buy milk")
+        mock_vault_handler.append_to_daily_note.assert_called_once_with("[ ] #todo buy milk")
+
+    def test_todo_comma_separator_with_spaces(self, quick_capture_instance, mock_vault_handler):
+        """Todo (Comma with spaces): 'task , buy milk' formats correctly"""
+        quick_capture_instance.process("task , buy milk")
+        mock_vault_handler.append_to_daily_note.assert_called_once_with("[ ] #todo buy milk")
+
+    def test_food_log_comma_separator(self, quick_capture_instance, mock_vault_handler):
+        """Food Log (Comma): 'food log, oatmeal and berries' appends to EMBED journal"""
+        quick_capture_instance.process("food log, oatmeal and berries")
+        mock_vault_handler.append_to_embed_journal.assert_called_once_with("oatmeal and berries")
+
+    def test_food_log_comma_separator_with_spaces(self, quick_capture_instance, mock_vault_handler):
+        """Food Log (Comma with spaces): 'food log , oatmeal and berries' appends correctly"""
+        quick_capture_instance.process("food log , oatmeal and berries")
+        mock_vault_handler.append_to_embed_journal.assert_called_once_with("oatmeal and berries")
