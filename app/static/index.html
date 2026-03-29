@@ -140,12 +140,27 @@
 
         .hint {
             font-size: 11px;
-            padding: 3px 8px;
+            padding: 4px 8px;
             border-radius: 6px;
             background: rgba(0, 212, 212, 0.1);
             color: var(--text-secondary);
             border: 1px solid rgba(0, 212, 212, 0.15);
             white-space: nowrap;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .hint:hover {
+            background: rgba(0, 212, 212, 0.15);
+            border-color: rgba(0, 212, 212, 0.3);
+            color: var(--accent-hover);
+        }
+
+        .hint:active {
+            transform: scale(0.95);
         }
 
         .hint code {
@@ -267,10 +282,10 @@
                 autofocus
             ></textarea>
             <div class="hint-bar">
-                <span class="hint"><code>w72.5</code> weight</span>
-                <span class="hint"><code>task …</code> todo</span>
-                <span class="hint"><code>embed …</code> food log</span>
-                <span class="hint"><code>pl3</code> parking</span>
+                <button type="button" class="hint" data-prefix="w" title="Log weight"><code>w</code> weight</button>
+                <button type="button" class="hint" data-prefix="task " title="Add task"><code>task</code> todo</button>
+                <button type="button" class="hint" data-prefix="embed " title="Log to EMBED journal"><code>embed</code> food</button>
+                <button type="button" class="hint" data-prefix="pl" title="Log parking level"><code>pl</code> parking</button>
             </div>
             <button type="submit">Capture</button>
         </form>
@@ -284,7 +299,7 @@
         const form = document.getElementById('captureForm');
         const textarea = document.getElementById('captureText');
         const messageDiv = document.getElementById('message');
-        const submitButton = form.querySelector('button');
+        const submitButton = form.querySelector('button[type="submit"]');
 
         function showMessage(text, type) {
             messageDiv.textContent = text;
@@ -336,6 +351,18 @@
                 e.preventDefault();
                 form.requestSubmit();
             }
+        });
+
+        // Hint button clicks - add prefix to textarea
+        document.querySelectorAll('.hint[data-prefix]').forEach((button) => {
+            button.addEventListener('click', (e) => {
+                e.preventDefault();
+                const prefix = button.getAttribute('data-prefix');
+                textarea.value = prefix;
+                textarea.focus();
+                // Move cursor to end
+                textarea.selectionStart = textarea.selectionEnd = textarea.value.length;
+            });
         });
     </script>
 </body>
