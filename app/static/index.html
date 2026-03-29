@@ -11,123 +11,273 @@
             box-sizing: border-box;
         }
 
+        :root {
+            --bg-primary: #1a1b2e;
+            --bg-card: #232544;
+            --bg-input: #1a1b2e;
+            --border-default: #3a3d6b;
+            --border-focus: #7c6aef;
+            --text-primary: #e8e6f0;
+            --text-secondary: #9b97b0;
+            --text-placeholder: #6b678a;
+            --accent: #7c6aef;
+            --accent-hover: #9585f5;
+            --accent-active: #6552d9;
+            --success-bg: rgba(72, 199, 142, 0.15);
+            --success-text: #48c78e;
+            --success-border: rgba(72, 199, 142, 0.3);
+            --error-bg: rgba(241, 70, 104, 0.15);
+            --error-text: #f14668;
+            --error-border: rgba(241, 70, 104, 0.3);
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            --glow: 0 0 20px rgba(124, 106, 239, 0.15);
+        }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f5f5f5;
+            background: var(--bg-primary);
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
             padding: 20px;
+            color: var(--text-primary);
         }
 
         .container {
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            padding: 30px;
+            background: var(--bg-card);
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            padding: 36px;
             width: 100%;
             max-width: 600px;
+            border: 1px solid var(--border-default);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent), #e06cef, var(--accent));
+            background-size: 200% 100%;
+            animation: shimmer 3s ease-in-out infinite;
+        }
+
+        @keyframes shimmer {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .header-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--accent), #e06cef);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            flex-shrink: 0;
         }
 
         h1 {
-            font-size: 24px;
-            margin-bottom: 20px;
-            color: #333;
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: -0.3px;
+        }
+
+        .subtitle {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 2px;
         }
 
         textarea {
             width: 100%;
-            min-height: 150px;
-            padding: 12px;
-            font-size: 16px;
+            min-height: 140px;
+            padding: 14px 16px;
+            font-size: 15px;
             font-family: inherit;
-            border: 2px solid #ddd;
-            border-radius: 4px;
+            line-height: 1.5;
+            border: 1.5px solid var(--border-default);
+            border-radius: 10px;
             resize: vertical;
-            transition: border-color 0.2s;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            background: var(--bg-input);
+            color: var(--text-primary);
+        }
+
+        textarea::placeholder {
+            color: var(--text-placeholder);
         }
 
         textarea:focus {
             outline: none;
-            border-color: #007bff;
+            border-color: var(--border-focus);
+            box-shadow: var(--glow);
+        }
+
+        .hint-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 10px;
+            margin-bottom: 16px;
+        }
+
+        .hint {
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 6px;
+            background: rgba(124, 106, 239, 0.1);
+            color: var(--text-secondary);
+            border: 1px solid rgba(124, 106, 239, 0.15);
+            white-space: nowrap;
+        }
+
+        .hint code {
+            color: var(--accent-hover);
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 10.5px;
         }
 
         button {
             width: 100%;
-            margin-top: 15px;
-            padding: 12px 20px;
-            font-size: 16px;
+            padding: 13px 20px;
+            font-size: 15px;
             font-weight: 600;
             color: white;
-            background: #007bff;
+            background: linear-gradient(135deg, var(--accent), #6552d9);
             border: none;
-            border-radius: 4px;
+            border-radius: 10px;
             cursor: pointer;
-            transition: background 0.2s;
+            transition: transform 0.1s, box-shadow 0.2s, opacity 0.2s;
+            letter-spacing: 0.3px;
         }
 
         button:hover {
-            background: #0056b3;
+            box-shadow: 0 4px 16px rgba(124, 106, 239, 0.35);
+            transform: translateY(-1px);
         }
 
         button:active {
-            background: #004494;
+            transform: translateY(0);
+            box-shadow: none;
         }
 
         button:disabled {
-            background: #ccc;
+            opacity: 0.4;
             cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
         }
 
         .message {
-            margin-top: 15px;
-            padding: 12px;
-            border-radius: 4px;
-            font-size: 14px;
+            margin-top: 14px;
+            padding: 12px 14px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 500;
             display: none;
+            animation: fadeIn 0.2s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-4px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .message.success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
+            background: var(--success-bg);
+            color: var(--success-text);
+            border: 1px solid var(--success-border);
         }
 
         .message.error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
+            background: var(--error-bg);
+            color: var(--error-text);
+            border: 1px solid var(--error-border);
         }
 
         .message.show {
             display: block;
         }
 
+        .footer {
+            margin-top: 24px;
+            text-align: center;
+            font-size: 11px;
+            color: var(--text-placeholder);
+        }
+
+        /* Keyboard shortcut hint */
+        .kbd {
+            display: inline-block;
+            padding: 1px 5px;
+            font-size: 10px;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 4px;
+            color: var(--text-secondary);
+        }
+
         @media (max-width: 480px) {
             .container {
-                padding: 20px;
+                padding: 24px 20px;
             }
 
             h1 {
-                font-size: 20px;
+                font-size: 19px;
+            }
+
+            .hint-bar {
+                display: none;
             }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Quick Capture</h1>
+        <div class="header">
+            <div class="header-icon">⚡</div>
+            <div>
+                <h1>Quick Capture</h1>
+                <div class="subtitle">Capture to your vault instantly</div>
+            </div>
+        </div>
         <form id="captureForm">
             <textarea
                 id="captureText"
-                placeholder="Enter text to capture..."
+                placeholder="What's on your mind?"
                 required
                 autofocus
             ></textarea>
+            <div class="hint-bar">
+                <span class="hint"><code>w72.5</code> weight</span>
+                <span class="hint"><code>task …</code> todo</span>
+                <span class="hint"><code>embed …</code> food log</span>
+                <span class="hint"><code>pl3</code> parking</span>
+            </div>
             <button type="submit">Capture</button>
         </form>
         <div id="message" class="message"></div>
+        <div class="footer">
+            <kbd class="kbd">⌘</kbd> + <kbd class="kbd">Enter</kbd> to submit
+        </div>
     </div>
 
     <script>
@@ -150,9 +300,8 @@
             const text = textarea.value.trim();
             if (!text) return;
 
-            // Disable button during submission
             submitButton.disabled = true;
-            submitButton.textContent = 'Capturing...';
+            submitButton.textContent = 'Capturing…';
 
             try {
                 const response = await fetch('/api/capture', {
@@ -166,18 +315,26 @@
                 const data = await response.json();
 
                 if (response.ok) {
-                    showMessage('Text captured successfully!', 'success');
+                    showMessage('✓ Captured', 'success');
                     textarea.value = '';
                     textarea.focus();
                 } else {
-                    showMessage('Failed to capture text', 'error');
+                    showMessage('Failed to capture — try again', 'error');
                 }
             } catch (error) {
-                showMessage('Network error. Please try again.', 'error');
+                showMessage('Network error — check your connection', 'error');
                 console.error('Capture error:', error);
             } finally {
                 submitButton.disabled = false;
                 submitButton.textContent = 'Capture';
+            }
+        });
+
+        // Cmd/Ctrl+Enter to submit
+        textarea.addEventListener('keydown', (e) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+                e.preventDefault();
+                form.requestSubmit();
             }
         });
     </script>
