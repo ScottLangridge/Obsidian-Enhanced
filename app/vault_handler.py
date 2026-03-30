@@ -195,7 +195,7 @@ class VaultHandler:
                 return
             except PermissionError as e:
                 logger.error(f"Permission denied reading {daily_note_path}: {e}")
-                return
+                raise
 
             lines = content.split('\n')
 
@@ -203,7 +203,7 @@ class VaultHandler:
             section_bounds = self._find_quick_capture_section(lines)
             if section_bounds is None:
                 logger.error("Quick Capture section not found in daily note")
-                return
+                raise RuntimeError(f"Quick Capture section not found in {daily_note_path}")
 
             start_idx, end_idx = section_bounds
 
@@ -236,7 +236,7 @@ class VaultHandler:
                 logger.info(f"Appended to Quick Capture: {text}")
             except PermissionError as e:
                 logger.error(f"Permission denied writing {daily_note_path}: {e}")
-                return
+                raise
 
         except Exception as e:
             logger.exception(f"Unexpected error appending to daily note: {e}")
@@ -261,7 +261,7 @@ class VaultHandler:
                 return
             except PermissionError as e:
                 logger.error(f"Permission denied reading {daily_note_path}: {e}")
-                return
+                raise
 
             lines = content.split('\n')
 
@@ -269,7 +269,7 @@ class VaultHandler:
             section_bounds = self._find_section(lines, TRACKERS_HEADING)
             if section_bounds is None:
                 logger.error("Trackers section not found in daily note")
-                return
+                raise RuntimeError(f"Trackers section not found in {daily_note_path}")
 
             start_idx, end_idx = section_bounds
 
@@ -286,7 +286,7 @@ class VaultHandler:
 
             if not weight_tag_found:
                 logger.error("Weight tag [weight::] not found in Trackers section")
-                return
+                raise RuntimeError(f"Weight tag [weight::] not found in Trackers section of {daily_note_path}")
 
             # Reconstruct file
             new_lines = (
@@ -302,7 +302,7 @@ class VaultHandler:
                 logger.info(f"Populated weight tag with: {weight_value}")
             except PermissionError as e:
                 logger.error(f"Permission denied writing {daily_note_path}: {e}")
-                return
+                raise
 
         except Exception as e:
             logger.exception(f"Unexpected error populating weight tag: {e}")
@@ -340,7 +340,7 @@ class VaultHandler:
                     return
                 except PermissionError as e:
                     logger.error(f"Permission denied reading {note_path}: {e}")
-                    return
+                    raise
 
                 lines = content.splitlines()
 
@@ -370,7 +370,7 @@ class VaultHandler:
                 logger.info(f"Appended to EMBED journal: {entry}")
             except PermissionError as e:
                 logger.error(f"Permission denied writing {note_path}: {e}")
-                return
+                raise
 
         except Exception as e:
             logger.exception(f"Unexpected error appending to EMBED journal: {e}")

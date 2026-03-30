@@ -333,8 +333,8 @@ class TestAppendToDailyNote:
 
     # Error Handling Tests
 
-    def test_append_missing_section_logs_error_and_skips(self, test_vault, caplog):
-        """Missing section: Log error and skip modification"""
+    def test_append_missing_section_raises_and_logs_error(self, test_vault, caplog):
+        """Missing section: Raise RuntimeError and log error, file left unchanged"""
         handler = VaultHandler(str(test_vault))
         test_date = date(2025, 1, 15)
 
@@ -352,18 +352,16 @@ class TestAppendToDailyNote:
         # Store original content
         original_content = note_path.read_text(encoding='utf-8')
 
-        # Attempt to append
-        handler.append_to_daily_note("Test text", target_date=test_date)
+        # Attempt to append — should raise RuntimeError
+        with pytest.raises(RuntimeError, match="Quick Capture section not found"):
+            handler.append_to_daily_note("Test text", target_date=test_date)
 
         # Verify error logged
         assert "Quick Capture section not found" in caplog.text
 
-        # Verify file unchanged
+        # Verify file unchanged (raise happens before any write)
         current_content = note_path.read_text(encoding='utf-8')
         assert current_content == original_content
-
-        # Verify no exception raised (graceful failure)
-        # If we got here, no exception was raised
 
     def test_append_empty_section_inserts_first_item(self, test_vault):
         """Empty section: Insert first item when section exists but has no '- ' placeholder"""
