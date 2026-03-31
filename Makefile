@@ -14,10 +14,10 @@ help:
 	@echo "  make clean         - Remove stopped containers and clean up"
 
 test:
-	@if command -v docker &> /dev/null; then \
-		docker compose run --rm app pytest tests/ -v; \
+	@if docker --version > /dev/null 2>&1; then \
+		docker compose run --rm app pytest app/tests/ -v; \
 	else \
-		. .venv/bin/activate && pytest tests/ -v; \
+		. .venv/bin/activate && pytest app/tests/ -v; \
 	fi
 
 test-cov:
