@@ -14,7 +14,11 @@ help:
 	@echo "  make clean         - Remove stopped containers and clean up"
 
 test:
-	docker compose run --rm app pytest tests/ -v
+	@if docker --version > /dev/null 2>&1; then \
+		docker compose run --rm app pytest tests/ -v; \
+	else \
+		cd app && . ../.venv/bin/activate && pytest tests/ -v; \
+	fi
 
 test-cov:
 	docker compose run --rm app pytest tests/ --cov --cov-report=term
