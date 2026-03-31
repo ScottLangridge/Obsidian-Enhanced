@@ -15,9 +15,9 @@ help:
 
 test:
 	@if docker --version > /dev/null 2>&1; then \
-		docker compose run --rm app pytest app/tests/ -v; \
+		docker compose run --rm app pytest tests/ -v; \
 	else \
-		. .venv/bin/activate && pytest app/tests/ -v; \
+		cd app && . ../.venv/bin/activate && pytest tests/ -v; \
 	fi
 
 test-cov:
