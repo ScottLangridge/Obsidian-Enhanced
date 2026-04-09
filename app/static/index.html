@@ -170,7 +170,8 @@
                     textarea.value = '';
                     textarea.focus();
                 } else {
-                    showMessage('Failed to capture text', 'error');
+                    const errorDetail = data.detail || 'Unknown error';
+                    showMessage(`✗ Failed: ${errorDetail}`, 'error');
                 }
             } catch (error) {
                 showMessage('Network error. Please try again.', 'error');

@@ -1,7 +1,7 @@
 """Tests for FastAPI server endpoints"""
 
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, Mock
 
 
 class TestGetEndpoint:
@@ -78,3 +78,64 @@ class TestCaptureEndpoint:
         # Verify that quick_capture.process was called with the correct text
         # Note: TestClient executes background tasks synchronously
         mock_process.assert_called_once_with(test_text)
+
+
+class TestCapturePermissionErrors:
+    """Test that permission errors during vault writes are surfaced to the UI"""
+
+    def test_permission_error_on_write_returns_500(self, test_client, monkeypatch):
+        """POST /api/capture: PermissionError during vault write returns HTTP 500 (not 200)
+
+        Previously, writes ran in a background task — the endpoint always returned 200
+        even when the vault write failed silently. This test verifies the fix: errors
+        must propagate back to the client.
+        """
+        import server
+
+        def raise_permission_error(text):
+            raise PermissionError("Permission denied writing /vault/Daily Notes/2026-03-30.md")
+
+        monkeypatch.setattr(server.quick_capture, 'process', raise_permission_error)
+
+        response = test_client.post("/api/capture", json={"text": "pl3"})
+
+        assert response.status_code == 500
+
+    def test_permission_error_response_contains_error_detail(self, test_client, monkeypatch):
+        """POST /api/capture: Error response body contains a meaningful error message
+
+        The UI uses the response body to display the error to the user.
+        A generic 500 with no detail is not actionable.
+        """
+        import server
+
+        def raise_permission_error(text):
+            raise PermissionError("Permission denied writing /vault/Daily Notes/2026-03-30.md")
+
+        monkeypatch.setattr(server.quick_capture, 'process', raise_permission_error)
+
+        response = test_client.post("/api/capture", json={"text": "embed banana"})
+        data = response.json()
+
+        # Should have a 'detail' field (FastAPI's HTTPException convention)
+        assert "detail" in data
+        assert len(data["detail"]) > 0
+
+    def test_permission_error_does_not_return_success_status(self, test_client, monkeypatch):
+        """POST /api/capture: Error response must NOT carry status='success'
+
+        This guards against the silent failure pattern where the endpoint returned
+        {"status": "success"} even though the write had failed.
+        """
+        import server
+
+        def raise_permission_error(text):
+            raise PermissionError("Permission denied writing /vault/Daily Notes/2026-03-30.md")
+
+        monkeypatch.setattr(server.quick_capture, 'process', raise_permission_error)
+
+        response = test_client.post("/api/capture", json={"text": "w70.5"})
+
+        assert response.status_code != 200
+        data = response.json()
+        assert data.get("status") != "success"
